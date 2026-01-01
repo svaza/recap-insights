@@ -1,0 +1,101 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dev:vite",
+            "type": "shell",
+            "command": "npm run dev -- --port 5173",
+            "options": {
+                "cwd": "${workspaceFolder}/strava-recap"
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "."
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Local:\\s+http://(localhost|127\\.0\\.0\\.1):5173"
+                }
+            }
+        },
+        {
+            "label": "dev:functions",
+            "type": "shell",
+            "command": "func host start --port 7071",
+            "options": {
+                "cwd": "${workspaceFolder}/strava-recap-api"
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "."
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Host started|Job host started|Now listening on:|Worker process started"
+                }
+            }
+        },
+        {
+            "label": "dev:swa",
+            "type": "shell",
+            "command": "swa start http://localhost:5173 --api-devserver-url http://localhost:7071 --port 4280",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "."
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "http://localhost:4280|localhost:4280|emulator started|Listening"
+                }
+            }
+        },
+        {
+            "label": "wait:5s",
+            "type": "shell",
+            "command": "powershell -NoProfile -Command \"Start-Sleep -Seconds 20\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "dev:all",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "dev:vite",
+                "dev:functions",
+                "dev:swa"
+            ]
+        }
+    ]
+}

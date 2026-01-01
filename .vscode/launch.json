@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "UI: Chrome (SWA :4280)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:4280",
+            "webRoot": "${workspaceFolder}/strava-recap",
+            "preLaunchTask": "dev:all"
+        },
+        {
+            "name": "API: Attach (.NET Functions)",
+            "type": "coreclr",
+            "request": "attach",
+            "preLaunchTask": "wait:5s",
+            "processId": "${command:pickProcess}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug: Vite + Functions + SWA",
+            "configurations": [
+                "UI: Chrome (SWA :4280)",
+                "API: Attach (.NET Functions)"
+            ],
+            "stopAll": true
+        }
+    ]
+}
