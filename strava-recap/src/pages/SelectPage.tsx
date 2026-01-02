@@ -4,8 +4,6 @@ import type { RecapQuery } from "../models/models";
 import { buildRecapUrl } from "../utils/recapQuery";
 import { formatRangeLabel } from "../utils/format";
 import PageShell from "../ui/PageShell";
-import Card from "../ui/Card";
-import Button from "../ui/Button";
 
 type PeriodOption = {
     id: string;
@@ -16,11 +14,11 @@ type PeriodOption = {
 };
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { id: "last7", emoji: "🔥", label: "Last 7 days", subtitle: "This week's heat check", query: { type: "rolling", days: 7 } },
-  { id: "last30", emoji: "💪", label: "Last 30 days", subtitle: "Monthly grind recap", query: { type: "rolling", days: 30 } },
-  { id: "thisMonth", emoji: "🎯", label: "This month", subtitle: "Calendar month stats", query: { type: "calendar", unit: "month" } },
-  { id: "thisYear", emoji: "⏳", label: "This year", subtitle: "Your annual achievement", query: { type: "calendar", unit: "year" } },
-  { id: "lastYear", emoji: "🏆", label: "Last year", subtitle: "Previous calendar year", query: { type: "calendar", unit: "year", offset: -1 } },
+    { id: "last7", emoji: "🔥", label: "Last 7 days", subtitle: "This week's heat check", query: { type: "rolling", days: 7 } },
+    { id: "last30", emoji: "💪", label: "Last 30 days", subtitle: "Monthly grind recap", query: { type: "rolling", days: 30 } },
+    { id: "thisMonth", emoji: "🎯", label: "This month", subtitle: "Calendar month stats", query: { type: "calendar", unit: "month" } },
+    { id: "thisYear", emoji: "⏳", label: "This year", subtitle: "Your annual achievement", query: { type: "calendar", unit: "year" } },
+    { id: "lastYear", emoji: "🏆", label: "Last year", subtitle: "Previous calendar year", query: { type: "calendar", unit: "year", offset: -1 } },
 ];
 
 
@@ -37,71 +35,61 @@ export default function SelectPage() {
 
     return (
         <PageShell title="Your Recap Insights">
-            <Card style={{ maxWidth: 540, margin: "0 auto", boxSizing: "border-box" }}>
-                <div style={{ fontSize: "clamp(16px, 5vw, 18px)", fontWeight: 900, marginBottom: 8 }}>⚡ Let's see what you've got</div>
-                    <div style={{ opacity: 0.7, marginBottom: 24, fontSize: "clamp(13px, 4vw, 15px)" }}>
-                        Pick your time window and watch the magic happen. We'll pull your Strava data and create your personalized recap.
-                    </div>
+            <div className="row justify-content-center">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <p className="fs-5 fw-bold mb-1">⚡ Let's see what you've got</p>
+                            <p className="text-secondary mb-4">
+                                Pick your time window and watch the magic happen. We'll pull your Strava data and create your personalized recap.
+                            </p>
 
-                    <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
-                        {PERIOD_OPTIONS.map((opt) => {
-                            const active = opt.id === selectedId;
-                            return (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setSelectedId(opt.id)}
-                                    style={{
-                                        textAlign: "left",
-                                        padding: "clamp(12px, 3vw, 16px)",
-                                        borderRadius: 16,
-                                        border: active ? "2px solid rgba(42,127,255,0.8)" : "1.5px solid rgba(255,255,255,0.15)",
-                                        background: active ? "linear-gradient(135deg, rgba(42,127,255,0.18), rgba(42,127,255,0.08))" : "rgba(255,255,255,0.04)",
-                                        color: "#e9eef5",
-                                        cursor: "pointer",
-                                        transition: "all 0.2s ease",
-                                        transform: active ? "scale(1.02)" : "scale(1)",
-                                        boxShadow: active ? "0 8px 24px rgba(42,127,255,0.15)" : "none",
-                                        width: "100%",
-                                        fontFamily: "inherit",
-                                        fontSize: "inherit",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!active) {
-                                            e.currentTarget.style.background = "rgba(255,255,255,0.07)";
-                                            e.currentTarget.style.borderColor = "rgba(42,127,255,0.5)";
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!active) {
-                                            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-                                        }
-                                    }}
-                                >
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "clamp(8px, 2vw, 16px)" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 12px)", flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: "clamp(20px, 6vw, 28px)", flexShrink: 0 }}>{opt.emoji}</div>
-                                            <div style={{ minWidth: 0 }}>
-                                                <div style={{ fontWeight: 900, fontSize: "clamp(14px, 4vw, 16px)", letterSpacing: "-0.3px" }}>{opt.label}</div>
-                                                <div style={{ opacity: 0.65, marginTop: 3, fontSize: "clamp(10px, 3vw, 12px)", fontWeight: 500 }}>{opt.subtitle}</div>
+                            <div className="list-group">
+                                {PERIOD_OPTIONS.map((opt) => {
+                                    const active = opt.id === selectedId;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => setSelectedId(opt.id)}
+                                            className={`list-group-item list-group-item-action ${active ? "active" : "bg-body-tertiary text-light"
+                                                }`}
+                                        >
+                                            <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                                                <div className="d-flex align-items-center gap-3 flex-fill min-w-0">
+                                                    <span className="fs-3" aria-hidden="true">
+                                                        {opt.emoji}
+                                                    </span>
+                                                    <div className="flex-fill min-w-0">
+                                                        <div className="fw-semibold mb-1 text-truncate">{opt.label}</div>
+                                                        <small className="text-body-secondary text-truncate d-block">{opt.subtitle}</small>
+                                                    </div>
+                                                </div>
+                                                <div className="text-opacity-75 fw-semibold fs-6 text-start text-sm-end w-100 w-sm-auto">
+                                                    {formatRangeLabel(opt.query)}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div style={{ opacity: 0.7, fontSize: "clamp(10px, 2vw, 12px)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                                            {formatRangeLabel(opt.query)}
-                                        </div>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
 
-                    <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
-                        <Button onClick={go} style={{ width: "100%" }}>🚀 Generate recap</Button>
-                        <Button variant="ghost" onClick={() => setSelectedId(PERIOD_OPTIONS[0].id)} style={{ width: "100%" }}>
-                            Reset
-                        </Button>
+                            <div className="d-flex flex-column flex-sm-row gap-3 mt-4">
+                                <button type="button" className="btn btn-primary flex-fill" onClick={go}>
+                                    🚀 Generate recap
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-light flex-fill"
+                                    onClick={() => setSelectedId(PERIOD_OPTIONS[0].id)}
+                                >
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </Card>
+                </div>
+            </div>
         </PageShell>
     );
 }

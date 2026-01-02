@@ -16,7 +16,7 @@ builder.Services.AddScoped<IAuthService, StravaAuthService>();
 builder.Services.AddScoped<ITokenService, StravaTokenService>();
 
 // Register activity service with DI
-builder.Services.AddScoped<IActivityService, StravaActivityService>();
+builder.Services.AddScoped<IActivityService, MockActivityService>();
 
 builder.ConfigureFunctionsWebApplication();
 

@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toPng } from "html-to-image";
 
 import type { ActivityItem } from "../models/models";
 import { parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel, num, secondsToHms } from "../utils/format";
+import { possessive } from "../utils/helper";
 
 import PageShell from "../ui/PageShell";
-import Card from "../ui/Card";
-import Button from "../ui/Button";
 import Stat from "../ui/Stat";
-
 import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
-import { possessive } from "../utils/helper";
-import { FlyerCard } from "../ui/FlyerCard";
 import { StravaConnectButton } from "../ui/StravaConnectButton";
 
 
@@ -22,7 +18,6 @@ type RecapApiResponseFlat =
     | { connected: false }
     | { connected: true; athleteName?: string; range: { startUtc: string; endUtc: string }; activities: ActivityItem[] }
     | { connected: true; error: string };
-
 
 type ComputedTotals = {
     activities: number;
@@ -35,7 +30,6 @@ type UnitSystem = "km" | "mi";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Wow constants
 const EIFFEL_TOWER_M = 324;
 const FLOOR_M = 3;
 const FOOTBALL_FIELD_M = 109.728;
@@ -148,38 +142,6 @@ function shouldShowElevation(typeRaw: string, elevationM: number) {
     return meaningful && (t.includes("hike") || t.includes("trail") || t.includes("run") || t.includes("ride"));
 }
 
-function UnitToggle(props: { value: UnitSystem; onChange: (v: UnitSystem) => void }) {
-    const pill: CSSProperties = {
-        display: "inline-flex",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        borderRadius: 999,
-        padding: 4,
-        gap: 4,
-    };
-
-    const btn = (active: boolean): CSSProperties => ({
-        border: "none",
-        borderRadius: 999,
-        padding: "6px 10px",
-        cursor: "pointer",
-        fontWeight: 800,
-        background: active ? "rgba(42,127,255,0.75)" : "transparent",
-        color: active ? "#07121f" : "#e9eef5",
-    });
-
-    return (
-        <div style={pill} aria-label="Units">
-            <button style={btn(props.value === "km")} onClick={() => props.onChange("km")}>
-                km
-            </button>
-            <button style={btn(props.value === "mi")} onClick={() => props.onChange("mi")}>
-                mi
-            </button>
-        </div>
-    );
-}
-
 function dayKeyLocal(isoUtc: string) {
     const d = new Date(isoUtc);
     const y = d.getFullYear();
@@ -238,7 +200,6 @@ export default function RecapPage() {
 
     const [activities, setActivities] = useState<ActivityItem[] | null>(null);
     const [range, setRange] = useState<{ startUtc: string; endUtc: string } | null>(null);
-
     const [athleteName, setAthleteName] = useState<string | null>(null);
 
     const [units, setUnits] = useState<UnitSystem>(() => {
@@ -250,30 +211,31 @@ export default function RecapPage() {
         localStorage.setItem("recap.units", units);
     }, [units]);
 
-    // --- Export refs ---
     const shareRef = useRef<HTMLDivElement | null>(null);
+    const wowRef = useRef<HTMLDivElement | null>(null);
     const [exporting, setExporting] = useState(false);
-    const hasRecapRun = useRef(false);
+    const [exportingWow, setExportingWow] = useState(false);
 
     useEffect(() => {
-        if (hasRecapRun.current) return;
-        hasRecapRun.current = true;
-
         if (!query) {
             navigate("/select", { replace: true });
             return;
         }
 
+        let cancelled = false;
         const run = async () => {
             setLoading(true);
             setError(null);
             setActivities(null);
             setRange(null);
+            setConnected(null);
 
             try {
                 const apiUrl = `/api/recap?${searchParams.toString()}`;
                 const res = await fetch(apiUrl);
                 const data = (await res.json()) as RecapApiResponseFlat;
+
+                if (cancelled) return;
 
                 if ("connected" in data && data.connected === false) {
                     setConnected(false);
@@ -291,14 +253,16 @@ export default function RecapPage() {
                 setActivities(data.activities ?? []);
                 setAthleteName((data as any).athleteName ?? null);
             } catch (e) {
-                setError(String(e));
+                if (!cancelled) setError(String(e));
             } finally {
-                setLoading(false);
-                hasRecapRun.current = false;
+                if (!cancelled) setLoading(false);
             }
         };
 
         run();
+        return () => {
+            cancelled = true;
+        };
     }, [query, navigate, searchParams]);
 
     const connectStrava = () => {
@@ -307,19 +271,15 @@ export default function RecapPage() {
     };
 
     const downloadShareImage = async () => {
-        if (!shareRef.current) return;
-
+        if (!shareRef.current || !query) return;
         try {
             setExporting(true);
-
-            const file = `recap-${slugify(formatRangeLabel(query!))}-${units}.png`;
-
+            const file = `recap-${slugify(formatRangeLabel(query))}-${units}.png`;
             const dataUrl = await toPng(shareRef.current, {
                 cacheBust: true,
                 pixelRatio: 2,
                 backgroundColor: "#0b0f14",
             });
-
             const a = document.createElement("a");
             a.href = dataUrl;
             a.download = file;
@@ -329,6 +289,24 @@ export default function RecapPage() {
         }
     };
 
+    const downloadWowImage = async () => {
+        if (!wowRef.current || !query) return;
+        try {
+            setExportingWow(true);
+            const file = `recap-wow-${slugify(formatRangeLabel(query))}-${units}.png`;
+            const dataUrl = await toPng(wowRef.current, {
+                cacheBust: true,
+                pixelRatio: 2,
+                backgroundColor: "#0b0f14",
+            });
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = file;
+            a.click();
+        } finally {
+            setExportingWow(false);
+        }
+    };
 
     if (!query) return null;
 
@@ -380,11 +358,13 @@ export default function RecapPage() {
 
         const items: WowItem[] = [];
 
-        const longestByDuration =
-            activities.length > 0 ? [...activities].sort((a, b) => (b.movingTimeSec ?? 0) - (a.movingTimeSec ?? 0))[0] : null;
+        const longestByDuration = activities.length > 0
+            ? [...activities].sort((a, b) => (b.movingTimeSec ?? 0) - (a.movingTimeSec ?? 0))[0]
+            : null;
 
-        const farthestByDistance =
-            activities.length > 0 ? [...activities].sort((a, b) => (b.distanceM ?? 0) - (a.distanceM ?? 0))[0] : null;
+        const farthestByDistance = activities.length > 0
+            ? [...activities].sort((a, b) => (b.distanceM ?? 0) - (a.distanceM ?? 0))[0]
+            : null;
 
         const start = new Date(range.startUtc);
         const end = new Date(range.endUtc);
@@ -554,320 +534,125 @@ export default function RecapPage() {
         return items.slice(0, 12);
     }, [activities, totals, range, formatters]);
 
-    const longestByDuration =
-        activities && activities.length > 0
-            ? [...activities].sort((a, b) => (b.movingTimeSec ?? 0) - (a.movingTimeSec ?? 0))[0]
-            : null;
-
-    const farthestByDistance =
-        activities && activities.length > 0
-            ? [...activities].sort((a, b) => (b.distanceM ?? 0) - (a.distanceM ?? 0))[0]
-            : null;
-
-    const flyerBadges = wowItems
-        .filter((w) =>
-            ["eiffel", "floors", "fields", "marathons", "laps", "earth", "moon", "burj", "empire", "ebc"].includes(w.id)
-        )
-        .slice(0, 12)
-        .map((w) => ({ emoji: w.emoji, label: w.title, value: w.value }));
-
-    const streakItem = wowItems.find((w) => w.id === "streak");
-    const streakValue = streakItem?.value ?? "—";
-    const streakSubtitle = streakItem?.subtitle ?? "build it up";
-
-    const longestValue = longestByDuration ? secondsToHms(longestByDuration.movingTimeSec ?? 0) : "—";
-    const longestSubtitle = longestByDuration
-        ? `${activityEmoji(longestByDuration.type)} ${longestByDuration.name}`
-        : "no activities yet";
-
-    const farthestValue =
-        farthestByDistance && (farthestByDistance.distanceM ?? 0) > 0
-            ? formatters.formatDistance(farthestByDistance.distanceM, 2)
-            : "—";
-    const farthestSubtitle = farthestByDistance
-        ? `${activityEmoji(farthestByDistance.type)} ${farthestByDistance.name}`
-        : "no distance activities yet";
-
-    const flyerSubtitle = rangeLabel;
-
     return (
         <PageShell
             title={`${athleteName ? possessive(athleteName) : "Your"} Recap Insights`}
             right={
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-end",
-                        gap: 10,
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <UnitToggle value={units} onChange={setUnits} />
-                    <Button variant="ghost" onClick={() => navigate("/select")}>
-                        Change period
-                    </Button>
-                    <Button
-                        variant="ghost"
+                <div className="d-flex flex-wrap gap-2 justify-content-end align-items-center">
+                    <div className="btn-group btn-group-sm" role="group" aria-label="Units">
+                        <button type="button" className={`btn ${units === "km" ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => setUnits("km")}>
+                            km
+                        </button>
+                        <button type="button" className={`btn ${units === "mi" ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => setUnits("mi")}>
+                            mi
+                        </button>
+                    </div>
+                    <button type="button" className="btn btn-outline-light btn-sm" onClick={() => navigate("/select")}>Change period</button>
+                    <button
+                        type="button"
+                        className="btn btn-outline-info btn-sm"
                         onClick={downloadShareImage}
                         disabled={!activities || !totals || connected !== true || exporting}
                     >
                         {exporting ? "Exporting…" : "Download image"}
-                    </Button>
+                    </button>
                 </div>
             }
         >
-            {/* Responsive layout CSS (inline, drop-in) */}
-            <style>{`
-              .totalsGrid {
-                display: grid;
-                gap: clamp(8px, 2vw, 10px);
-                margin-top: 12px;
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-              }
-              @media (max-width: 820px) {
-                .totalsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-              }
-              @media (max-width: 420px) {
-                .totalsGrid { grid-template-columns: 1fr; }
-              }
-              .statCell { min-width: 0; }
+            <div className="row justify-content-center">
+                <div className="col-12 col-lg-10 col-xl-9">
+                    <div className="card mb-4">
+                        <div className="card-body">
+                            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div className="fw-bold fs-5">{headerTitle}</div>
+                                    <div className="text-body-secondary">{rangeLabel}</div>
+                                </div>
+                                <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
+                                    {connected === true && <span className="badge text-bg-success">Connected</span>}
+                                    {connected === false && <span className="badge text-bg-warning">Not connected</span>}
+                                    <span className="badge text-bg-secondary">{units === "mi" ? "mi / ft" : "km / m"} • Strava</span>
+                                </div>
+                            </div>
 
-              .flyerHeaderRow {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                flex-wrap: wrap;
-                margin-top: 8px;
-              }
-              .flyerText {
-                min-width: 0;
-                opacity: 0.7;
-                font-size: clamp(11px, 3vw, 13px);
-              }
-              .flyerPreview {
-                width: min(540px, 100%);
-                margin: 14px auto 0;
-                border-radius: 22px;
-                overflow: hidden;
-                border: 1px solid rgba(255,255,255,0.10);
-                background: rgba(255,255,255,0.02);
-                position: relative;
-                aspect-ratio: 1080 / 1350;
-              }
-              .flyerInner {
-                position: absolute;
-                left: 0;
-                top: 0;
-                transform-origin: top left;
-              }
-              @media (max-width: 640px) {
-                .flyerHeaderRow { flex-direction: column; align-items: stretch; }
-              }
-            `}</style>
+                            {loading && <div className="text-info mt-3">Fetching activities… computing recap…</div>}
+                            {error && <div className="text-danger mt-3">Error: {error}</div>}
 
-            <div
-                style={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    padding: "0 clamp(12px, 3vw, 16px)",
-                    boxSizing: "border-box",
-                    gap: "clamp(12px, 3vw, 14px)",
-                }}
-            >
-                {/* Connection / status */}
-                <Card style={{ width: "100%", maxWidth: 900 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", alignItems: "flex-start" }}>
-                        <div>
-                            <div style={{ fontSize: "clamp(16px, 4vw, 18px)", fontWeight: 900 }}>{headerTitle}</div>
-                            <div style={{ opacity: 0.7, marginTop: 4, fontSize: "clamp(13px, 3vw, 14px)" }}>{rangeLabel}</div>
+                            {connected === false && (
+                                <div className="mt-3">
+                                    <p className="mb-3">Connect Strava (read-only) to generate this recap.</p>
+                                    <div className="d-flex flex-column flex-sm-row gap-2">
+                                        <StravaConnectButton onClick={connectStrava} />
+                                        <button type="button" className="btn btn-outline-secondary flex-fill" onClick={() => navigate("/select")}>
+                                            Back
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-
-                        {connected === false && <div style={{ opacity: 0.75, fontSize: "clamp(12px, 3vw, 13px)" }}>Not connected</div>}
-                        {connected === true && <div style={{ opacity: 0.75, fontSize: "clamp(12px, 3vw, 13px)" }}>Connected</div>}
                     </div>
 
-                    {connected === false && (
-                        <div style={{ marginTop: 14, width: "100%" }}>
-                            <div style={{ opacity: 0.8, fontSize: "clamp(13px, 3vw, 14px)" }}>
-                                Connect Strava (read-only) to generate this recap.
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-                                <StravaConnectButton onClick={connectStrava}>
-                                </StravaConnectButton>
-                                <Button variant="ghost" onClick={() => navigate("/select")} style={{ width: "100%" }}>
-                                    Back
-                                </Button>
+                    {activities && totals && (
+                        <div className="card mb-4" ref={shareRef}>
+                            <div className="card-body">
+                                <div>
+                                    <div className="text-uppercase small text-secondary fw-semibold mb-2">Totals</div>
+                                    <div className="row g-3">
+                                        <div className="col-6 col-md-3"><Stat label="🎯 Activities" value={String(totals.activities)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="📏 Distance" value={formatters.formatDistance(totals.distanceM, 1)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="⏱️ Time" value={secondsToHms(totals.movingTimeSec)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="⛰️ Elevation" value={formatters.formatElevation(totals.elevationM)} /></div>
+                                    </div>
+                                </div>
+
+                                {wowItems.length > 0 && (
+                                    <div className="mt-4">
+                                        <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                            <div className="text-uppercase small text-secondary fw-semibold">Wow highlights</div>
+                                            <button
+                                                type="button"
+                                                className="btn"
+                                                onClick={downloadWowImage}
+                                                disabled={exportingWow}
+                                                title="Download current wow carousel"
+                                            >
+                                                {exportingWow ? "…" : "⬇️"}
+                                            </button>
+                                        </div>
+                                        <WowCarousel ref={wowRef} items={wowItems} />
+                                        <div className="text-body-secondary small mt-2">Tip: swipe to your favorite wow card, then download.</div>
+                                    </div>
+                                )}
+
+                                <div className="mt-4">
+                                    <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
+                                    <p className="text-body-secondary small">Contextual summary by activity type</p>
+                                    <div className="list-group">
+                                        {byType.map(([type, info]) => (
+                                            <div key={type} className="list-group-item">
+                                                <div className="d-flex align-items-center gap-2 mb-1">
+                                                    <span className="fs-4" aria-hidden="true">{activityEmoji(type)}</span>
+                                                    <div className="fw-semibold text-truncate">{type}</div>
+                                                </div>
+                                                <div className="text-body-secondary small">{formatBreakdownLine(type, info)}</div>
+                                            </div>
+                                        ))}
+                                        {byType.length === 0 && (
+                                            <div className="list-group-item text-body-secondary">No activities in this range.</div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {loading && <div style={{ marginTop: 14, opacity: 0.85, fontSize: "clamp(13px, 3vw, 14px)" }}>Fetching activities… computing recap…</div>}
-                    {error && <div style={{ marginTop: 14, color: "#ff6b6b", fontSize: "clamp(13px, 3vw, 14px)" }}>Error: {error}</div>}
-                </Card>
-
-                {/* Share panel (export this) */}
-                {activities && totals && (
-                    <Card style={{ width: "100%", maxWidth: 900 }}>
-                        <div
-                            ref={shareRef}
-                            style={{
-                                borderRadius: 22,
-                                padding: "clamp(14px, 3vw, 18px)",
-                                border: "1px solid rgba(255,255,255,0.10)",
-                                background:
-                                    "radial-gradient(900px 460px at 30% 0%, rgba(42,127,255,0.22), transparent 60%), rgba(255,255,255,0.03)",
-                            }}
-                        >
-                            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", alignItems: "flex-start" }}>
-                                <div>
-                                    <div style={{ fontSize: "clamp(18px, 5vw, 22px)", fontWeight: 950, letterSpacing: -0.4 }}>
-                                        {headerTitle}
-                                    </div>
-                                    <div style={{ opacity: 0.75, marginTop: 6, fontSize: "clamp(12px, 3vw, 14px)" }}>{rangeLabel}</div>
-                                </div>
-
-                                <div
-                                    style={{
-                                        padding: "6px 10px",
-                                        borderRadius: 999,
-                                        fontSize: "clamp(10px, 2vw, 12px)",
-                                        fontWeight: 900,
-                                        opacity: 0.85,
-                                        border: "1px solid rgba(255,255,255,0.10)",
-                                        background: "rgba(255,255,255,0.05)",
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {units === "mi" ? "mi / ft" : "km / m"} • Strava
-                                </div>
-                            </div>
-
-                            {/* TOTALS (fixed: now stretches properly) */}
-                            <div style={{ marginTop: "clamp(12px, 3vw, 16px)" }}>
-                                <div style={{ fontSize: "clamp(12px, 3vw, 14px)", fontWeight: 900, opacity: 0.75, letterSpacing: 0.8 }}>
-                                    TOTALS
-                                </div>
-
-                                <div className="totalsGrid">
-                                    <div className="statCell"><Stat label="🎯 Activities" value={String(totals.activities)} /></div>
-                                    <div className="statCell"><Stat label="📏 Distance" value={formatters.formatDistance(totals.distanceM, 1)} /></div>
-                                    <div className="statCell"><Stat label="⏱️ Time" value={secondsToHms(totals.movingTimeSec)} /></div>
-                                    <div className="statCell"><Stat label="⛰️ Elevation" value={formatters.formatElevation(totals.elevationM)} /></div>
-                                </div>
-                            </div>
-
-                            {/* WOW */}
-                            {wowItems.length > 0 && (
-                                <div style={{ marginTop: "clamp(12px, 3vw, 16px)" }}>
-                                    <div style={{ fontSize: "clamp(12px, 3vw, 14px)", fontWeight: 900, opacity: 0.75, letterSpacing: 0.8 }}>
-                                        WOW HIGHLIGHTS
-                                    </div>
-
-                                    <div style={{ marginTop: 12 }}>
-                                        <WowCarousel items={wowItems} />
-                                    </div>
-
-                                    <div style={{ marginTop: 8, fontSize: "clamp(10px, 2vw, 12px)", opacity: 0.6 }}>
-                                        Tip: swipe to your favorite wow card, then download.
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* BREAKDOWN */}
-                            <div style={{ marginTop: "clamp(12px, 3vw, 16px)" }}>
-                                <div style={{ fontSize: "clamp(12px, 3vw, 14px)", fontWeight: 900, opacity: 0.75, letterSpacing: 0.8 }}>
-                                    BREAKDOWN
-                                </div>
-                                <div style={{ opacity: 0.7, marginTop: 6, fontSize: "clamp(11px, 3vw, 13px)" }}>
-                                    Contextual summary by activity type
-                                </div>
-
-                                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 10px)" }}>
-                                    {byType.slice(0, 8).map(([type, info]) => (
-                                        <div
-                                            key={type}
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                alignItems: "flex-start",
-                                                justifyContent: "flex-start",
-                                                gap: "clamp(6px, 2vw, 8px)",
-                                                padding: "clamp(10px, 2vw, 12px)",
-                                                borderRadius: 14,
-                                                border: "1px solid rgba(255,255,255,0.08)",
-                                                background: "rgba(255,255,255,0.03)",
-                                            }}
-                                        >
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                                                <div style={{ fontSize: "clamp(16px, 4vw, 18px)" }}>{activityEmoji(type)}</div>
-                                                <div style={{ fontWeight: 850, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "clamp(13px, 3vw, 14px)" }}>
-                                                    {type}
-                                                </div>
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    opacity: 0.9,
-                                                    textAlign: "left",
-                                                    width: "100%",
-                                                    overflowWrap: "anywhere",
-                                                    fontSize: "clamp(11px, 3vw, 13px)",
-                                                }}
-                                            >
-                                                {formatBreakdownLine(type, info)}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {byType.length === 0 && (
-                                        <div style={{ opacity: 0.75, fontSize: "clamp(12px, 3vw, 13px)" }}>
-                                            No activities in this range.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                )}
-
-                {/* Flyer card component */}
-                <FlyerCard
-                    activities={activities}
-                    totals={totals}
-                    athleteName={athleteName}
-                    longestValue={longestValue}
-                    longestSubtitle={longestSubtitle}
-                    farthestValue={farthestValue}
-                    farthestSubtitle={farthestSubtitle}
-                    streakValue={streakValue}
-                    streakSubtitle={streakSubtitle}
-                    flyerBadges={flyerBadges}
-                    flyerSubtitle={flyerSubtitle}
-                    formattedTime={totals ? secondsToHms(totals.movingTimeSec) : "—"}
-                    units={units}
-                    formatDistance={formatters.formatDistance}
-                    formatElevation={formatters.formatElevation}
-                />
-
-                {/* footer watermark */}
-                <div
-                    style={{
-                        marginTop: 16,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        opacity: 0.55,
-                        fontSize: 12,
-                        fontWeight: 800,
-                    }}
-                >
-                    <div>Generated by Recap</div>
-                    <div>{new Date().toLocaleDateString()}</div>
+                    <div className="d-flex justify-content-between text-body-secondary mt-3 small fw-semibold">
+                        <div>Generated by Recap</div>
+                        <div>{new Date().toLocaleDateString()}</div>
+                    </div>
                 </div>
             </div>
         </PageShell>
     );
 }
+

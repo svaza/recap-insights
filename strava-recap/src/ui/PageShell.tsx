@@ -4,33 +4,14 @@ export default function PageShell(props: {
     right?: React.ReactNode;
 }) {
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                width: "100%",
-                background: "#0b0f14",
-                color: "#e9eef5",
-                display: "flex",
-                justifyContent: "center",
-            }}
-        >
-            <div
-                style={{
-                    width: "100%",
-                    maxWidth: 1240,
-                    padding: "24px 16px",
-                    margin: "0 auto",
-                    boxSizing: "border-box",
-                }}
-            >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                    <div>
-                        <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>{props.title}</div>
-                    </div>
-                    {props.right}
+        <div className="min-vh-100">
+            <div className="container py-5 border-bottom border-secondary-subtle pb-5">
+                <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                    <h1 className="h3 fw-bold mb-0">{props.title}</h1>
+                    {props.right && <div className="ms-md-3">{props.right}</div>}
                 </div>
 
-                <div style={{ marginTop: 20 }}>{props.children}</div>
+                <div className="mt-4 py-4 container">{props.children}</div>
             </div>
         </div>
     );
