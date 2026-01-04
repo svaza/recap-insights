@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import type { RecapQuery } from "../models/models";
 import { buildRecapUrl } from "../utils/recapQuery";
 import { formatRangeLabel } from "../utils/format";
@@ -85,6 +85,13 @@ export default function SelectPage() {
                                 >
                                     Reset
                                 </button>
+                            </div>
+
+                            <div className="mt-4 pt-3 border-top border-secondary">
+                                <p className="text-secondary small mb-0">
+                                    We use read-only activity access to generate your recap, store recap summaries locally in your browser (not on our servers), and don't process/store GPS routes.
+                                    For more details, see the full <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>.
+                                </p>
                             </div>
                         </div>
                     </div>

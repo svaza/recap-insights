@@ -5,7 +5,7 @@ export default function PageShell(props: {
 }) {
     return (
         <div className="min-vh-100">
-            <div className="container py-5 border-bottom border-secondary-subtle pb-5">
+            <div className="container py-5 border-secondary-subtle pb-5">
                 <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
                     <h1 className="h3 fw-bold mb-0">{props.title}</h1>
                     {props.right && <div className="ms-md-3">{props.right}</div>}
