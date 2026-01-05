@@ -40,26 +40,30 @@ public sealed class RecapFunction
             return await req.OkJson(activitiesResult.ToErrorResponse());
         }
 
-        // 4) Map to proper DTO
-        var activities = activitiesResult.Activities!
-            //.Filter(recapRequest)
-            .Select(a => a.ToDto())
-            .ToList();
+        // 4) Compute totals and breakdown
+        var activities = activitiesResult.Activities!;
+        var total = activities.ToTotal().ToDto();
+        var breakdown = activities.ToBreakdown().Select(b => b.ToDto()).ToList();
+        var activeDays = activities.ToActiveDays();
+        var highlights = activities.ToHighlights();
 
         // 5) Fetch athlete profile (optional)
         var athlete = await _activityService.GetAthleteAsync(recapRequest.Authentication.AccessToken!);
-        var athleteName = athlete?.FullName ?? "[Unknown]";
+        var athleteProfile = athlete?.ToDto();
 
-        return await req.OkJson(new
+        return await req.OkJson(new RecapResponseDto
         {
-            connected = true,
-            athleteName,
-            range = new
+            Connected = true,
+            AthleteProfile = athleteProfile,
+            Range = new RecapRangeDto
             {
-                startUtc = recapRequest.StartUtc.UtcDateTime.ToString("o"),
-                endUtc = recapRequest.EndUtc.UtcDateTime.ToString("o")
+                StartUtc = recapRequest.StartUtc.UtcDateTime.ToString("o"),
+                EndUtc = recapRequest.EndUtc.UtcDateTime.ToString("o")
             },
-            activities
+            Total = total,
+            Breakdown = breakdown,
+            ActiveDays = activeDays,
+            Highlights = highlights
         });
     }
 }

@@ -1,4 +1,4 @@
-namespace strava_recap_api.Models;
+namespace strava_recap_api.Entities;
 
 /// <summary>
 /// Authentication request containing access token and expiration information.

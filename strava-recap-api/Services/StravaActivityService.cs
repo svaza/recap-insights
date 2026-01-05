@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using strava_recap_api.Models;
+using strava_recap_api.Entities;
 
 namespace strava_recap_api.Services;
 
@@ -42,7 +42,7 @@ public class StravaActivityService : IActivityService
 
         _logger.LogInformation("Fetching activities from Strava for range {StartUtc} to {EndUtc}", recapRequest.StartUtc, recapRequest.EndUtc);
 
-        var activities = new List<StravaSummaryActivity>(capacity: 256);
+        var activities = new List<ActivitySummary>(capacity: 256);
 
         try
         {
@@ -118,7 +118,7 @@ public class StravaActivityService : IActivityService
                 }
 
                 // Parse page items
-                var pageItems = JsonSerializer.Deserialize<List<StravaSummaryActivity>>(body, JsonOptions) ?? new();
+                var pageItems = JsonSerializer.Deserialize<List<ActivitySummary>>(body, JsonOptions) ?? new();
                 _logger.LogDebug("Received {ActivityCount} activities on page {Page}", pageItems.Count, page);
 
                 if (pageItems.Count == 0)
@@ -174,7 +174,7 @@ public class StravaActivityService : IActivityService
     /// <summary>
     /// Fetches athlete's profile information. Returns null if fetch fails.
     /// </summary>
-    public async Task<StravaAthleteProfile?> GetAthleteAsync(string accessToken)
+    public async Task<AthleteProfile?> GetAthleteAsync(string accessToken)
     {
         try
         {
@@ -200,7 +200,7 @@ public class StravaActivityService : IActivityService
                 return null;
             }
 
-            var profile = new StravaAthleteProfile(athlete.FirstName ?? "", athlete.LastName ?? "");
+            var profile = new AthleteProfile(athlete.FirstName ?? "", athlete.LastName ?? "");
             _logger.LogInformation("Retrieved athlete name: {AthleteName}", profile.FullName);
             return profile;
         }

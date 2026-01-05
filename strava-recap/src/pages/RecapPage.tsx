@@ -13,22 +13,42 @@ import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
 import { StravaConnectButton } from "../ui/StravaConnectButton";
 
+type AthleteProfile = {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+};
 
-type RecapApiResponseFlat =
-    | { connected: false }
-    | { connected: true; athleteName?: string; range: { startUtc: string; endUtc: string }; activities: ActivityItem[] }
-    | { connected: true; error: string };
+type RecapRange = {
+    startUtc: string;
+    endUtc: string;
+};
 
-type ComputedTotals = {
+type ActivityTotal = {
     activities: number;
     distanceM: number;
     movingTimeSec: number;
     elevationM: number;
 };
 
-type UnitSystem = "km" | "mi";
+type ActivityBreakdown = {
+    type: string;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+type RecapHighlights = {
+    longestActivity?: ActivityItem;
+    farthestActivity?: ActivityItem;
+};
+
+type RecapApiResponseFlat =
+    | { connected: false }
+    | { connected: true; athleteProfile?: AthleteProfile; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
+    | { connected: true; error: string };
+
+type UnitSystem = "km" | "mi";
 
 const EIFFEL_TOWER_M = 324;
 const FLOOR_M = 3;
@@ -43,18 +63,7 @@ const BURJ_KHALIFA_M = 828;
 const EMPIRE_STATE_ROOF_M = 381;
 const EVEREST_BASE_CAMP_SOUTH_M = 5364;
 
-function computeTotals(activities: ActivityItem[]): ComputedTotals {
-    return activities.reduce(
-        (acc, a) => {
-            acc.activities += 1;
-            acc.distanceM += a.distanceM ?? 0;
-            acc.movingTimeSec += a.movingTimeSec ?? 0;
-            acc.elevationM += a.elevationM ?? 0;
-            return acc;
-        },
-        { activities: 0, distanceM: 0, movingTimeSec: 0, elevationM: 0 }
-    );
-}
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function metersToKm(m: number) {
     return m / 1000;
@@ -68,31 +77,12 @@ function metersToFeet(m: number) {
     return m * 3.28084;
 }
 
-function groupByType(activities: ActivityItem[]) {
-    const map = new Map<string, { count: number; distanceM: number; timeSec: number; elevationM: number }>();
-    for (const a of activities) {
-        const key = a.type || "Other";
-        const prev = map.get(key) ?? { count: 0, distanceM: 0, timeSec: 0, elevationM: 0 };
-        prev.count += 1;
-        prev.distanceM += a.distanceM ?? 0;
-        prev.timeSec += a.movingTimeSec ?? 0;
-        prev.elevationM += a.elevationM ?? 0;
-        map.set(key, prev);
-    }
-    return Array.from(map.entries()).sort(([, a], [, b]) => b.distanceM - a.distanceM);
-}
-
 function getHeaderTitle(q: ReturnType<typeof parseRecapQuery>) {
     if (!q) return "Your Recap Insights";
     if (q.type === "rolling") return `Last ${q.days} days`;
     if (q.unit === "month") return "This month";
     if (q.unit === "year" && q.offset === -1) return "Last year";
     return "This year";
-}
-
-function plural(n: number, one: string, many?: string) {
-    const m = many ?? `${one}s`;
-    return n === 1 ? `${n} ${one}` : `${n} ${m}`;
 }
 
 function activityEmoji(typeRaw: string) {
@@ -140,14 +130,6 @@ function shouldShowElevation(typeRaw: string, elevationM: number) {
     const t = (typeRaw || "").toLowerCase();
     const meaningful = elevationM >= 50;
     return meaningful && (t.includes("hike") || t.includes("trail") || t.includes("run") || t.includes("ride"));
-}
-
-function dayKeyLocal(isoUtc: string) {
-    const d = new Date(isoUtc);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
 }
 
 function computeLongestStreak(activeDayKeys: string[]) {
@@ -198,9 +180,12 @@ export default function RecapPage() {
     const [connected, setConnected] = useState<boolean | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const [activities, setActivities] = useState<ActivityItem[] | null>(null);
-    const [range, setRange] = useState<{ startUtc: string; endUtc: string } | null>(null);
-    const [athleteName, setAthleteName] = useState<string | null>(null);
+    const [highlights, setHighlights] = useState<RecapHighlights | null>(null);
+    const [total, setTotal] = useState<ActivityTotal | null>(null);
+    const [breakdown, setBreakdown] = useState<ActivityBreakdown[]>([]);
+    const [range, setRange] = useState<RecapRange | null>(null);
+    const [athleteProfile, setAthleteProfile] = useState<AthleteProfile | null>(null);
+    const [activeDays, setActiveDays] = useState<string[]>([]);
 
     const [units, setUnits] = useState<UnitSystem>(() => {
         const v = localStorage.getItem("recap.units");
@@ -226,8 +211,10 @@ export default function RecapPage() {
         const run = async () => {
             setLoading(true);
             setError(null);
-            setActivities(null);
+            setTotal(null);
+            setBreakdown([]);
             setRange(null);
+            setHighlights(null);
             setConnected(null);
 
             try {
@@ -250,8 +237,11 @@ export default function RecapPage() {
 
                 setConnected(true);
                 setRange(data.range);
-                setActivities(data.activities ?? []);
-                setAthleteName((data as any).athleteName ?? null);
+                setTotal(data.total);
+                setBreakdown(data.breakdown ?? []);
+                setAthleteProfile(data.athleteProfile ?? null);
+                setActiveDays(data.activeDays ?? []);
+                setHighlights(data.highlights ?? null);
             } catch (e) {
                 if (!cancelled) setError(String(e));
             } finally {
@@ -313,9 +303,6 @@ export default function RecapPage() {
     const headerTitle = getHeaderTitle(query);
     const rangeLabel = formatRangeLabel(query);
 
-    const totals = activities ? computeTotals(activities) : null;
-    const byType = activities ? groupByType(activities) : [];
-
     const formatters = useMemo(() => {
         const formatDistance = (meters: number, digits = 1) => {
             const v = units === "mi" ? metersToMiles(meters) : metersToKm(meters);
@@ -333,79 +320,48 @@ export default function RecapPage() {
 
     const formatBreakdownLine = (
         type: string,
-        info: { count: number; distanceM: number; timeSec: number; elevationM: number }
+        info: { distanceM: number; movingTimeSec: number; elevationM: number }
     ) => {
         if (isDistanceType(type) && info.distanceM > 0) {
             const parts: string[] = [
-                `${plural(info.count, "activity")}`,
                 `${formatters.formatDistance(info.distanceM, 1)}`,
-                `${secondsToHms(info.timeSec)}`,
+                `${secondsToHms(info.movingTimeSec)}`,
             ];
             if (shouldShowElevation(type, info.elevationM)) parts.push(formatters.formatElevation(info.elevationM));
             return parts.join(" • ");
         }
 
         if (isTimeOnlyType(type)) {
-            return `${plural(info.count, "session")} • ${secondsToHms(info.timeSec)}`;
+            return `${secondsToHms(info.movingTimeSec)}`;
         }
 
-        if (info.distanceM > 0) return `${info.count} • ${formatters.formatDistance(info.distanceM, 1)}`;
-        return `${info.count} • ${secondsToHms(info.timeSec)}`;
+        if (info.distanceM > 0) return `${formatters.formatDistance(info.distanceM, 1)}`;
+        return `${secondsToHms(info.movingTimeSec)}`;
     };
 
     const wowItems: WowItem[] = useMemo(() => {
-        if (!activities || !totals || !range) return [];
+        if (!total || !range) return [];
 
         const items: WowItem[] = [];
-
-        const longestByDuration = activities.length > 0
-            ? [...activities].sort((a, b) => (b.movingTimeSec ?? 0) - (a.movingTimeSec ?? 0))[0]
-            : null;
-
-        const farthestByDistance = activities.length > 0
-            ? [...activities].sort((a, b) => (b.distanceM ?? 0) - (a.distanceM ?? 0))[0]
-            : null;
 
         const start = new Date(range.startUtc);
         const end = new Date(range.endUtc);
         const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY));
 
-        const activeDaySet = new Set<string>();
-        for (const a of activities) activeDaySet.add(dayKeyLocal(a.startDateUtc));
-        const activeDays = activeDaySet.size;
-
-        if (activeDays > 0) {
-            const pct = Math.round((activeDays / totalDays) * 100);
+        // Active days
+        if (activeDays.length > 0) {
+            const pct = Math.round((activeDays.length / totalDays) * 100);
             items.push({
                 id: "active-days",
                 emoji: "📆",
                 title: "Active days",
-                value: `${activeDays}/${totalDays}`,
+                value: `${activeDays.length}/${totalDays}`,
                 subtitle: `${pct}% consistency`,
             });
         }
 
-        if (longestByDuration && (longestByDuration.movingTimeSec ?? 0) > 0) {
-            items.push({
-                id: "biggest-effort",
-                emoji: "🚀",
-                title: "Biggest effort",
-                value: secondsToHms(longestByDuration.movingTimeSec),
-                subtitle: `${activityEmoji(longestByDuration.type)} ${longestByDuration.name}`,
-            });
-        }
-
-        if (farthestByDistance && (farthestByDistance.distanceM ?? 0) > 0) {
-            items.push({
-                id: "farthest",
-                emoji: "🏆",
-                title: "Farthest session",
-                value: formatters.formatDistance(farthestByDistance.distanceM, 2),
-                subtitle: `${activityEmoji(farthestByDistance.type)} ${farthestByDistance.name}`,
-            });
-        }
-
-        const longestStreak = computeLongestStreak(Array.from(activeDaySet));
+        // Longest streak
+        const longestStreak = computeLongestStreak(activeDays);
         if (longestStreak > 1) {
             items.push({
                 id: "streak",
@@ -416,8 +372,30 @@ export default function RecapPage() {
             });
         }
 
-        const elevationM = totals.elevationM;
-        const distanceM = totals.distanceM;
+        // Longest activity by duration
+        if (highlights?.longestActivity && (highlights.longestActivity.movingTimeSec ?? 0) > 0) {
+            items.push({
+                id: "biggest-effort",
+                emoji: "🚀",
+                title: "Biggest effort",
+                value: secondsToHms(highlights.longestActivity.movingTimeSec),
+                subtitle: `${activityEmoji(highlights.longestActivity.type)} ${highlights.longestActivity.name}`,
+            });
+        }
+
+        // Farthest activity by distance
+        if (highlights?.farthestActivity && (highlights.farthestActivity.distanceM ?? 0) > 0) {
+            items.push({
+                id: "farthest",
+                emoji: "🏆",
+                title: "Farthest session",
+                value: formatters.formatDistance(highlights.farthestActivity.distanceM, 2),
+                subtitle: `${activityEmoji(highlights.farthestActivity.type)} ${highlights.farthestActivity.name}`,
+            });
+        }
+
+        const elevationM = total.elevationM;
+        const distanceM = total.distanceM;
 
         const eiffel = elevationM / EIFFEL_TOWER_M;
         if (eiffel > 1) {
@@ -532,11 +510,11 @@ export default function RecapPage() {
         }
 
         return items.slice(0, 12);
-    }, [activities, totals, range, formatters]);
+    }, [total, range, activeDays, highlights, formatters]);
 
     return (
         <PageShell
-            title={`${athleteName ? possessive(athleteName) : "Your"} Recap Insights`}
+            title={`${athleteProfile?.fullName ? possessive(athleteProfile.fullName) : "Your"} Recap Insights`}
             right={
                 <div className="d-flex flex-wrap gap-2 justify-content-end align-items-center">
                     <div className="btn-group btn-group-sm" role="group" aria-label="Units">
@@ -552,7 +530,7 @@ export default function RecapPage() {
                         type="button"
                         className="btn btn-outline-info btn-sm"
                         onClick={downloadShareImage}
-                        disabled={!activities || !totals || connected !== true || exporting}
+                        disabled={!total || connected !== true || exporting}
                     >
                         {exporting ? "Exporting…" : "Download image"}
                     </button>
@@ -592,16 +570,16 @@ export default function RecapPage() {
                         </div>
                     </div>
 
-                    {activities && totals && (
+                    {total && (
                         <div className="card mb-4" ref={shareRef}>
                             <div className="card-body">
                                 <div>
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Totals</div>
                                     <div className="row g-3">
-                                        <div className="col-6 col-md-3"><Stat label="🎯 Activities" value={String(totals.activities)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="📏 Distance" value={formatters.formatDistance(totals.distanceM, 1)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="⏱️ Time" value={secondsToHms(totals.movingTimeSec)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="⛰️ Elevation" value={formatters.formatElevation(totals.elevationM)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="🎯 Activities" value={String(total.activities)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="📏 Distance" value={formatters.formatDistance(total.distanceM, 1)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="⏱️ Time" value={secondsToHms(total.movingTimeSec)} /></div>
+                                        <div className="col-6 col-md-3"><Stat label="⛰️ Elevation" value={formatters.formatElevation(total.elevationM)} /></div>
                                     </div>
                                 </div>
 
@@ -628,16 +606,16 @@ export default function RecapPage() {
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
                                     <p className="text-body-secondary small">Contextual summary by activity type</p>
                                     <div className="list-group">
-                                        {byType.map(([type, info]) => (
-                                            <div key={type} className="list-group-item">
+                                        {breakdown.map((item) => (
+                                            <div key={item.type} className="list-group-item">
                                                 <div className="d-flex align-items-center gap-2 mb-1">
-                                                    <span className="fs-4" aria-hidden="true">{activityEmoji(type)}</span>
-                                                    <div className="fw-semibold text-truncate">{type}</div>
+                                                    <span className="fs-4" aria-hidden="true">{activityEmoji(item.type)}</span>
+                                                    <div className="fw-semibold text-truncate">{item.type}</div>
                                                 </div>
-                                                <div className="text-body-secondary small">{formatBreakdownLine(type, info)}</div>
+                                                <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
                                             </div>
                                         ))}
-                                        {byType.length === 0 && (
+                                        {breakdown.length === 0 && (
                                             <div className="list-group-item text-body-secondary">No activities in this range.</div>
                                         )}
                                     </div>

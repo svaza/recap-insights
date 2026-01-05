@@ -1,4 +1,5 @@
 using System.Net;
+using strava_recap_api.Entities;
 using strava_recap_api.Models;
 
 namespace strava_recap_api.Services;
@@ -11,7 +12,7 @@ public static class ActivityResultExtensions
     /// <summary>
     /// Creates an error response object from a failed ActivityResult.
     /// </summary>
-    public static object ToErrorResponse(this ActivityResult result)
+    public static object ToErrorResponse(this Entities.ActivityResult result)
     {
         if (result.Success)
             throw new InvalidOperationException("Cannot create error response from successful result");
