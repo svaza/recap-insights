@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import type { RecapQuery } from "../models/models";
 import { buildRecapUrl } from "../utils/recapQuery";
 import { formatRangeLabel } from "../utils/format";
+import { possessive } from "../utils/helper";
+import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import PageShell from "../ui/PageShell";
 
 type PeriodOption = {
@@ -25,6 +27,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 export default function SelectPage() {
     const navigate = useNavigate();
     const [selectedId, setSelectedId] = useState(PERIOD_OPTIONS[0].id);
+    const athleteProfile = useAthleteProfile();
 
     const selected = useMemo(
         () => PERIOD_OPTIONS.find((x) => x.id === selectedId) ?? PERIOD_OPTIONS[0],
@@ -33,8 +36,12 @@ export default function SelectPage() {
 
     const go = () => navigate(buildRecapUrl(selected.query));
 
+    const pageTitle = athleteProfile?.fullName 
+        ? `${possessive(athleteProfile.fullName)} Recap Insights`
+        : "Recap Insights";
+
     return (
-        <PageShell title="Your Recap Insights">
+        <PageShell title={pageTitle}>
             <div className="row justify-content-center">
                 <div className="col-12">
                     <div className="card">

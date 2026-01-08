@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using strava_recap_api.Entities;
 
 namespace strava_recap_api.Extensions;
 
@@ -24,6 +25,22 @@ public static class HttpRequestDataExtensions
         configureResponse?.Invoke(res);
         await res.WriteStringAsync(JsonSerializer.Serialize(payload, JsonOptions));
         return res;
+    }
+
+    /// <summary>
+    /// Generates an AuthenticationRequest from HTTP request cookies.
+    /// Does not validate - validation is the responsibility of the caller.
+    /// </summary>
+    public static AuthenticationRequest GenerateAuthenticationRequest(this HttpRequestData req)
+    {
+        var accessToken = req.GetAccessTokenFromCookies();
+        var expiresAt = req.GetTokenExpirationFromCookies();
+
+        return new AuthenticationRequest
+        {
+            AccessToken = accessToken,
+            ExpiresAt = expiresAt
+        };
     }
 
     /// <summary>

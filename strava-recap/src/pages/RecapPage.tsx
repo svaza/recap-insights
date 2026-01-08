@@ -2,51 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toPng } from "html-to-image";
 
-import type { ActivityItem } from "../models/models";
 import { parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel, num, secondsToHms } from "../utils/format";
 import { possessive } from "../utils/helper";
+import { useAthleteProfile } from "../hooks/useAthleteProfile";
+import { useFetchRecap } from "../hooks/useFetchRecap";
 
 import PageShell from "../ui/PageShell";
 import Stat from "../ui/Stat";
 import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
 import { StravaConnectButton } from "../ui/StravaConnectButton";
-
-type AthleteProfile = {
-    firstName: string;
-    lastName: string;
-    fullName: string;
-};
-
-type RecapRange = {
-    startUtc: string;
-    endUtc: string;
-};
-
-type ActivityTotal = {
-    activities: number;
-    distanceM: number;
-    movingTimeSec: number;
-    elevationM: number;
-};
-
-type ActivityBreakdown = {
-    type: string;
-    distanceM: number;
-    movingTimeSec: number;
-    elevationM: number;
-};
-
-type RecapHighlights = {
-    longestActivity?: ActivityItem;
-    farthestActivity?: ActivityItem;
-};
-
-type RecapApiResponseFlat =
-    | { connected: false }
-    | { connected: true; athleteProfile?: AthleteProfile; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
-    | { connected: true; error: string };
 
 type UnitSystem = "km" | "mi";
 
@@ -175,17 +141,8 @@ export default function RecapPage() {
     const [searchParams] = useSearchParams();
 
     const query = useMemo(() => parseRecapQuery(searchParams), [searchParams]);
-
-    const [loading, setLoading] = useState(false);
-    const [connected, setConnected] = useState<boolean | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    const [highlights, setHighlights] = useState<RecapHighlights | null>(null);
-    const [total, setTotal] = useState<ActivityTotal | null>(null);
-    const [breakdown, setBreakdown] = useState<ActivityBreakdown[]>([]);
-    const [range, setRange] = useState<RecapRange | null>(null);
-    const [athleteProfile, setAthleteProfile] = useState<AthleteProfile | null>(null);
-    const [activeDays, setActiveDays] = useState<string[]>([]);
+    const athleteProfile = useAthleteProfile();
+    const { loading, connected, error, highlights, total, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
 
     const [units, setUnits] = useState<UnitSystem>(() => {
         const v = localStorage.getItem("recap.units");
@@ -204,56 +161,8 @@ export default function RecapPage() {
     useEffect(() => {
         if (!query) {
             navigate("/select", { replace: true });
-            return;
         }
-
-        let cancelled = false;
-        const run = async () => {
-            setLoading(true);
-            setError(null);
-            setTotal(null);
-            setBreakdown([]);
-            setRange(null);
-            setHighlights(null);
-            setConnected(null);
-
-            try {
-                const apiUrl = `/api/recap?${searchParams.toString()}`;
-                const res = await fetch(apiUrl);
-                const data = (await res.json()) as RecapApiResponseFlat;
-
-                if (cancelled) return;
-
-                if ("connected" in data && data.connected === false) {
-                    setConnected(false);
-                    return;
-                }
-
-                if ("error" in data) {
-                    setConnected(true);
-                    setError(data.error);
-                    return;
-                }
-
-                setConnected(true);
-                setRange(data.range);
-                setTotal(data.total);
-                setBreakdown(data.breakdown ?? []);
-                setAthleteProfile(data.athleteProfile ?? null);
-                setActiveDays(data.activeDays ?? []);
-                setHighlights(data.highlights ?? null);
-            } catch (e) {
-                if (!cancelled) setError(String(e));
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-
-        run();
-        return () => {
-            cancelled = true;
-        };
-    }, [query, navigate, searchParams]);
+    }, [query, navigate]);
 
     const connectStrava = () => {
         const returnTo = location.pathname + location.search;
@@ -526,14 +435,18 @@ export default function RecapPage() {
                         </button>
                     </div>
                     <button type="button" className="btn btn-outline-light btn-sm" onClick={() => navigate("/select")}>Change period</button>
-                    <button
-                        type="button"
-                        className="btn btn-outline-info btn-sm"
-                        onClick={downloadShareImage}
-                        disabled={!total || connected !== true || exporting}
-                    >
-                        {exporting ? "Exporting…" : "Download image"}
-                    </button>
+                    {
+                        connected === true && (
+                            <button
+                                type="button"
+                                className="btn btn-outline-info btn-sm"
+                                onClick={downloadShareImage}
+                                disabled={!total || connected !== true || exporting}
+                            >
+                                {exporting ? "Exporting…" : "Download image"}
+                            </button>
+                        )
+                    }
                 </div>
             }
         >
@@ -623,11 +536,14 @@ export default function RecapPage() {
                             </div>
                         </div>
                     )}
-
-                    <div className="d-flex justify-content-between text-body-secondary mt-3 small fw-semibold">
-                        <div>Generated by Recap</div>
-                        <div>{new Date().toLocaleDateString()}</div>
-                    </div>
+                    {
+                        connected === true && (
+                            <div className="d-flex justify-content-between text-body-secondary mt-3 small fw-semibold">
+                                <div>Generated by Recap</div>
+                                <div>{new Date().toLocaleDateString()}</div>
+                            </div>
+                        )
+                    }
                 </div>
             </div>
         </PageShell>

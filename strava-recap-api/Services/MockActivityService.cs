@@ -29,12 +29,6 @@ public class MockActivityService : IActivityService
             RateLimit: null));
     }
 
-    public Task<AthleteProfile?> GetAthleteAsync(string accessToken)
-    {
-        // Always return a simple mock profile
-        return Task.FromResult<AthleteProfile?>(new AthleteProfile("Mock", "Athlete"));
-    }
-
     private static List<ActivitySummary> BuildActivities(DateTimeOffset startUtc, DateTimeOffset endUtc)
     {
         var activities = new List<ActivitySummary>();

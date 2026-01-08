@@ -47,14 +47,9 @@ public sealed class RecapFunction
         var activeDays = activities.ToActiveDays();
         var highlights = activities.ToHighlights();
 
-        // 5) Fetch athlete profile (optional)
-        var athlete = await _activityService.GetAthleteAsync(recapRequest.Authentication.AccessToken!);
-        var athleteProfile = athlete?.ToDto();
-
         return await req.OkJson(new RecapResponseDto
         {
             Connected = true,
-            AthleteProfile = athleteProfile,
             Range = new RecapRangeDto
             {
                 StartUtc = recapRequest.StartUtc.UtcDateTime.ToString("o"),

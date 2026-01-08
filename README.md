@@ -135,8 +135,7 @@ npm run build
 
 **2. Build the Azure Functions API**
 ```bash
-cd ../strava-recap-api
-dotnet publish strava-recap-api.csproj -c Release -o ./publish
+dotnet publish ./strava-recap-api/strava-recap-api.csproj -c Release -o ./strava-recap-api/publish
 ```
 
 **3. Deploy to Azure SWA**
