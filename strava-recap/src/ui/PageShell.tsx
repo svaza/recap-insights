@@ -15,7 +15,7 @@ export default function PageShell(props: {
             </div>
             <footer className="py-3 text-center text-muted border-top">
                 <div className="container">
-                    Built with ❤️ in Zone 2 • Tennessee, USA
+                    Built with ❤️ in Zone 2
                 </div>
             </footer>
         </div>

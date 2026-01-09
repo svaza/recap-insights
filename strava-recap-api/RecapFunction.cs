@@ -1,21 +1,22 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using strava_recap_api.Services;
 using strava_recap_api.Extensions;
+using strava_recap_api.Providers;
 using strava_recap_api.Models;
+using strava_recap_api.Services;
 
 namespace strava_recap_api;
 
 public sealed class RecapFunction
 {
     private readonly ILogger<RecapFunction> _logger;
-    private readonly IActivityService _activityService;
+    private readonly IProviderFactory _providerFactory;
 
-    public RecapFunction(ILogger<RecapFunction> logger, IActivityService activityService)
+    public RecapFunction(ILogger<RecapFunction> logger, IProviderFactory providerFactory)
     {
         _logger = logger;
-        _activityService = activityService;
+        _providerFactory = providerFactory;
     }
 
     [Function("Recap")]
@@ -32,15 +33,21 @@ public sealed class RecapFunction
             return await req.OkJson(new { connected = false });
         }
 
-        // 3) Fetch activities
-        var activitiesResult = await _activityService.GetActivitiesAsync(recapRequest);
+        // 3) Get provider type from cookies and resolve provider
+        var providerType = req.GetProviderTypeFromCookies();
+        var provider = _providerFactory.GetProvider(providerType);
+
+        _logger.LogInformation("Fetching activities from {ProviderType}", providerType);
+
+        // 4) Fetch activities using provider's service
+        var activitiesResult = await provider.ActivityService.GetActivitiesAsync(recapRequest);
 
         if (!activitiesResult.Success)
         {
             return await req.OkJson(activitiesResult.ToErrorResponse());
         }
 
-        // 4) Compute totals and breakdown
+        // 5) Compute totals and breakdown
         var activities = activitiesResult.Activities!;
         var total = activities.ToTotal().ToDto();
         var breakdown = activities.ToBreakdown().Select(b => b.ToDto()).ToList();
@@ -50,6 +57,7 @@ public sealed class RecapFunction
         return await req.OkJson(new RecapResponseDto
         {
             Connected = true,
+            Provider = providerType.ToCookieValue(),
             Range = new RecapRangeDto
             {
                 StartUtc = recapRequest.StartUtc.UtcDateTime.ToString("o"),

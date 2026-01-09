@@ -141,8 +141,8 @@ export default function RecapPage() {
     const [searchParams] = useSearchParams();
 
     const query = useMemo(() => parseRecapQuery(searchParams), [searchParams]);
-    const athleteProfile = useAthleteProfile();
-    const { loading, connected, error, highlights, total, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
+    const { athleteProfile } = useAthleteProfile();
+    const { loading, connected, error, providerDisplayName, highlights, total, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
 
     const [units, setUnits] = useState<UnitSystem>(() => {
         const v = localStorage.getItem("recap.units");
@@ -164,9 +164,9 @@ export default function RecapPage() {
         }
     }, [query, navigate]);
 
-    const connectStrava = () => {
+    const connectProvider = (providerType: string = "strava") => {
         const returnTo = location.pathname + location.search;
-        window.location.href = `/api/provider/connect?returnTo=${encodeURIComponent(returnTo)}`;
+        window.location.href = `/api/provider/connect?provider=${providerType}&returnTo=${encodeURIComponent(returnTo)}`;
     };
 
     const downloadShareImage = async () => {
@@ -460,9 +460,11 @@ export default function RecapPage() {
                                     <div className="text-body-secondary">{rangeLabel}</div>
                                 </div>
                                 <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
-                                    {connected === true && <span className="badge text-bg-success">Connected</span>}
-                                    {connected === false && <span className="badge text-bg-warning">Not connected</span>}
-                                    <span className="badge text-bg-secondary">{units === "mi" ? "mi / ft" : "km / m"} • Strava</span>
+                                    {connected !== null && (
+                                        <span className={`badge ${connected ? 'text-bg-success' : 'text-bg-warning'}`}>
+                                            {connected ? 'Connected' : 'Not connected'} • {providerDisplayName}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -471,9 +473,9 @@ export default function RecapPage() {
 
                             {connected === false && (
                                 <div className="mt-3">
-                                    <p className="mb-3">Connect Strava (read-only) to generate this recap.</p>
+                                    <p className="mb-3">Connect a provider (read-only) to generate this recap.</p>
                                     <div className="d-flex flex-column flex-sm-row gap-2">
-                                        <StravaConnectButton onClick={connectStrava} />
+                                        <StravaConnectButton onClick={() => connectProvider("strava")} />
                                         <button type="button" className="btn btn-outline-secondary flex-fill" onClick={() => navigate("/select")}>
                                             Back
                                         </button>

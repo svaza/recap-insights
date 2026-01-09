@@ -198,7 +198,7 @@ export default forwardRef<HTMLDivElement, Props>(function RecapFlyerPanel(props,
 
                 {/* Footer */}
                 <div style={{ marginTop: "auto", paddingTop: 26, display: "flex", justifyContent: "space-between", opacity: 0.7, fontWeight: 900 }}>
-                    <div>{props.footerLeft ?? "Powered by Recap"}</div>
+                    <div>{props.footerLeft ?? "Powered by Recap Insights"}</div>
                     <div>{props.footerRight ?? `Generated on ${new Date().toLocaleDateString()}`}</div>
                 </div>
             </div>

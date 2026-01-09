@@ -1,6 +1,7 @@
 using System.Net;
 using strava_recap_api.Entities;
 using strava_recap_api.Models;
+using strava_recap_api.Providers;
 
 namespace strava_recap_api.Services;
 
@@ -53,12 +54,14 @@ public static class CallbackResultExtensions
     /// <summary>
     /// Converts a token service CallbackResult to a CallbackResultDto for client response.
     /// </summary>
-    public static CallbackResultDto ToDto(this CallbackResult result)
+    public static CallbackResultDto ToDto(this CallbackResult result, ProviderType providerType = ProviderType.Strava)
     {
+        var providerName = providerType.ToDisplayName();
         return new CallbackResultDto
         {
             Success = result.Success,
-            Message = result.Success ? "Successfully connected to Strava" : result.ErrorMessage,
+            Provider = providerType.ToCookieValue(),
+            Message = result.Success ? $"Successfully connected to {providerName}" : result.ErrorMessage,
             ReturnTo = result.ReturnTo,
             ErrorStatusCode = result.ErrorStatusCode
         };

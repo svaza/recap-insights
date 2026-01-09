@@ -2,7 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using strava_recap_api.Extensions;
-using strava_recap_api.Services;
+using strava_recap_api.Providers;
 using System.Net;
 
 namespace strava_recap_api;
@@ -10,12 +10,12 @@ namespace strava_recap_api;
 public class ProviderConnectFunction
 {
     private readonly ILogger<ProviderConnectFunction> _logger;
-    private readonly IAuthService _authService;
+    private readonly IProviderFactory _providerFactory;
 
-    public ProviderConnectFunction(ILogger<ProviderConnectFunction> logger, IAuthService authService)
+    public ProviderConnectFunction(ILogger<ProviderConnectFunction> logger, IProviderFactory providerFactory)
     {
         _logger = logger;
-        _authService = authService;
+        _providerFactory = providerFactory;
     }
 
     [Function(nameof(ProviderConnectFunction))]
@@ -26,10 +26,18 @@ public class ProviderConnectFunction
         {
             var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
             var returnTo = query.GetReturnTo();
+            var providerTypeString = query["provider"] ?? "strava";
+            var providerType = providerTypeString.ParseProviderType();
 
-            var state = req.GenerateAuthState(returnTo);
+            _logger.LogInformation("Provider connect request for {ProviderType}", providerType);
 
-            var authUrl = _authService.GenerateAuthorizationUrl(state);
+            // Get the appropriate provider
+            var provider = _providerFactory.GetProvider(providerType);
+
+            // Encode provider type in state so we know which provider to use on callback
+            var state = req.GenerateAuthState(returnTo, providerType);
+
+            var authUrl = provider.AuthService.GenerateAuthorizationUrl(state);
 
             var response = req.GenerateResponseWithRedirect(authUrl);
             response.AddAuthStateCookie(state);
@@ -38,7 +46,7 @@ public class ProviderConnectFunction
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error in Strava connect");
+            _logger.LogError(ex, "Unexpected error in provider connect");
             var errorRes = req.CreateResponse(HttpStatusCode.InternalServerError);
             errorRes.WriteString("Unexpected error");
             return errorRes;

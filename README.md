@@ -1,10 +1,10 @@
-# Strava Recap - Frontend
+# Recap Insights - Frontend
 
-A React + TypeScript web application that generates personalized activity recaps from your Strava data. This frontend connects to the [strava-recap-api](../strava-recap-api) backend to fetch and display your athletic achievements.
+A React + TypeScript web application that generates personalized activity recaps from your Strava and intervals.icu data. This frontend connects to the [strava-recap-api](../strava-recap-api) backend to fetch and display your athletic achievements.
 
 ## Features
 
-- 🔐 **Strava OAuth Integration** - Securely connect your Strava account
+- 🔐 **Multi-Provider Support** - Connect to Strava and intervals.icu
 - 📊 **Activity Analytics** - View comprehensive statistics for your activities
 - 📅 **Flexible Time Windows** - Choose from various recap periods (rolling days, monthly, yearly)
 - 🎨 **Visual Recaps** - Generate shareable recap posters and flyers

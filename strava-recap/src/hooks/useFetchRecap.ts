@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActivityItem } from "../models/models";
 import { getFromStorage, setStorage, clearCacheByPrefix } from "../utils/storageCache";
+import { getProviderDisplayName } from "../utils/provider";
 
 type RecapRange = {
     startUtc: string;
@@ -28,10 +29,11 @@ type RecapHighlights = {
 
 type RecapApiResponseFlat =
     | { connected: false }
-    | { connected: true; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
+    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
     | { connected: true; error: string };
 
 type CachedRecapData = {
+    provider?: string;
     range: RecapRange;
     total: ActivityTotal;
     breakdown: ActivityBreakdown[];
@@ -45,6 +47,7 @@ export function useFetchRecap(queryString: string) {
     const [loading, setLoading] = useState(false);
     const [connected, setConnected] = useState<boolean | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [provider, setProvider] = useState<string | null>(null);
     const [highlights, setHighlights] = useState<RecapHighlights | null>(null);
     const [total, setTotal] = useState<ActivityTotal | null>(null);
     const [breakdown, setBreakdown] = useState<ActivityBreakdown[]>([]);
@@ -55,6 +58,7 @@ export function useFetchRecap(queryString: string) {
         // Try to load from cache first
         const cachedData = getFromStorage<CachedRecapData>(CACHE_KEY, queryString);
         if (cachedData) {
+            setProvider(cachedData.provider ?? null);
             setRange(cachedData.range);
             setTotal(cachedData.total);
             setBreakdown(cachedData.breakdown);
@@ -79,6 +83,7 @@ export function useFetchRecap(queryString: string) {
 
                 if ("connected" in data && data.connected === false) {
                     setConnected(false);
+                    setProvider(null);
                     setTotal(null);
                     setBreakdown([]);
                     setRange(null);
@@ -96,6 +101,7 @@ export function useFetchRecap(queryString: string) {
                 }
 
                 setConnected(true);
+                setProvider(data.provider ?? null);
                 setRange(data.range);
                 setTotal(data.total);
                 setBreakdown(data.breakdown ?? []);
@@ -104,6 +110,7 @@ export function useFetchRecap(queryString: string) {
 
                 // Update cache with successful data
                 const cacheData: CachedRecapData = {
+                    provider: data.provider,
                     range: data.range,
                     total: data.total,
                     breakdown: data.breakdown ?? [],
@@ -124,10 +131,14 @@ export function useFetchRecap(queryString: string) {
         };
     }, [queryString]);
 
+    const providerDisplayName = getProviderDisplayName(provider);
+
     return {
         loading,
         connected,
         error,
+        provider,
+        providerDisplayName,
         highlights,
         total,
         breakdown,

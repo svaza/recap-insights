@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using strava_recap_api.Entities;
+using strava_recap_api.Providers;
 
 namespace strava_recap_api.Extensions;
 
@@ -44,14 +45,15 @@ public static class HttpRequestDataExtensions
     }
 
     /// <summary>
-    /// Generates a CSRF protection state token with optional returnTo parameter encoded.
-    /// Format: {randomHex}|{urlEncodedReturnTo}
+    /// Generates a CSRF protection state token with optional returnTo parameter and provider type encoded.
+    /// Format: {randomHex}|{urlEncodedReturnTo}|{providerType}
     /// </summary>
-    public static string GenerateAuthState(this HttpRequestData req, string? returnTo = null)
+    public static string GenerateAuthState(this HttpRequestData req, string? returnTo = null, ProviderType providerType = ProviderType.Strava)
     {
         var random = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
         var encodedReturn = WebUtility.UrlEncode(returnTo ?? "/");
-        return $"{random}|{encodedReturn}";
+        var providerValue = providerType.ToCookieValue();
+        return $"{random}|{encodedReturn}|{providerValue}";
     }
 
     /// <summary>
@@ -69,7 +71,7 @@ public static class HttpRequestDataExtensions
     /// </summary>
     public static void AddAuthStateCookie(this HttpResponseData response, string state)
     {
-        response.Headers.Add("Set-Cookie", $"strava_oauth_state={WebUtility.UrlEncode(state)}; Path=/; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", $"recap_oauth_state={WebUtility.UrlEncode(state)}; Path=/; HttpOnly; SameSite=Lax");
     }
 
     /// <summary>
@@ -101,12 +103,12 @@ public static class HttpRequestDataExtensions
 
     /// <summary>
     /// Extracts and decodes the returnTo value from state token.
-    /// Format: {randomHex}|{urlEncodedReturnTo}
+    /// Format: {randomHex}|{urlEncodedReturnTo}|{providerType}
     /// </summary>
     public static string ExtractReturnToFromState(this string state)
     {
-        var parts = state.Split('|', 2);
-        if (parts.Length == 2)
+        var parts = state.Split('|');
+        if (parts.Length >= 2)
         {
             return WebUtility.UrlDecode(parts[1]) ?? "/";
         }
@@ -114,12 +116,27 @@ public static class HttpRequestDataExtensions
     }
 
     /// <summary>
-    /// Adds authentication cookies to the response (access token and expiration).
+    /// Extracts the provider type from state token.
+    /// Format: {randomHex}|{urlEncodedReturnTo}|{providerType}
     /// </summary>
-    public static void AddAuthCookies(this HttpResponseData response, string accessToken, long expiresAt)
+    public static ProviderType ExtractProviderTypeFromState(this string state)
     {
-        response.Headers.Add("Set-Cookie", $"strava_access_token={WebUtility.UrlEncode(accessToken)}; Path=/; HttpOnly; SameSite=Lax");
-        response.Headers.Add("Set-Cookie", $"strava_expires_at={expiresAt}; Path=/; HttpOnly; SameSite=Lax");
+        var parts = state.Split('|');
+        if (parts.Length >= 3)
+        {
+            return parts[2].ParseProviderType();
+        }
+        return ProviderType.Strava; // Default to Strava for backward compatibility
+    }
+
+    /// <summary>
+    /// Adds authentication cookies to the response (access token, expiration, and provider type).
+    /// </summary>
+    public static void AddAuthCookies(this HttpResponseData response, string accessToken, long expiresAt, ProviderType providerType = ProviderType.Strava)
+    {
+        response.Headers.Add("Set-Cookie", $"recap_access_token={WebUtility.UrlEncode(accessToken)}; Path=/; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", $"recap_expires_at={expiresAt}; Path=/; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", $"recap_provider={providerType.ToCookieValue()}; Path=/; HttpOnly; SameSite=Lax");
     }
 
     /// <summary>
@@ -127,7 +144,7 @@ public static class HttpRequestDataExtensions
     /// </summary>
     public static void ClearStateCookie(this HttpResponseData response)
     {
-        response.Headers.Add("Set-Cookie", "strava_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", "recap_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
     }
 
     /// <summary>
@@ -142,29 +159,38 @@ public static class HttpRequestDataExtensions
         foreach (var part in cookies.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
             var kv = part.Trim().Split('=', 2);
-            if (kv.Length == 2 && kv[0] == "strava_oauth_state")
+            if (kv.Length == 2 && kv[0] == "recap_oauth_state")
                 return WebUtility.UrlDecode(kv[1]);
         }
         return null;
     }
 
     /// <summary>
-    /// Gets the Strava access token from request cookies.
+    /// Gets the access token from request cookies.
     /// </summary>
     public static string? GetAccessTokenFromCookies(this HttpRequestData req)
     {
-        return GetCookieValue(req, "strava_access_token");
+        return GetCookieValue(req, "recap_access_token");
     }
 
     /// <summary>
-    /// Gets the Strava token expiration time (Unix seconds) from request cookies.
+    /// Gets the token expiration time (Unix seconds) from request cookies.
     /// </summary>
     public static long? GetTokenExpirationFromCookies(this HttpRequestData req)
     {
-        var value = GetCookieValue(req, "strava_expires_at");
+        var value = GetCookieValue(req, "recap_expires_at");
         if (long.TryParse(value, out var seconds))
             return seconds;
         return null;
+    }
+
+    /// <summary>
+    /// Gets the provider type from request cookies.
+    /// </summary>
+    public static ProviderType GetProviderTypeFromCookies(this HttpRequestData req)
+    {
+        var value = GetCookieValue(req, "recap_provider");
+        return value.ParseProviderType();
     }
 
     /// <summary>

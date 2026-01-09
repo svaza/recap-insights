@@ -6,6 +6,7 @@ namespace strava_recap_api.Models;
 public sealed class RecapResponseDto
 {
     public bool Connected { get; set; }
+    public string? Provider { get; set; }
     public RecapRangeDto Range { get; set; } = null!;
     public ActivityTotalDto Total { get; set; } = null!;
     public List<ActivityBreakdownDto> Breakdown { get; set; } = new();

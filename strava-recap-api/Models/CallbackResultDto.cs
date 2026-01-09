@@ -7,6 +7,7 @@ namespace strava_recap_api.Models;
 public class CallbackResultDto
 {
     public bool Success { get; set; }
+    public string? Provider { get; set; }
     public string? Message { get; set; }
     public string? ReturnTo { get; set; }
     public int? ErrorStatusCode { get; set; }

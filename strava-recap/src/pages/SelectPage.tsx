@@ -27,7 +27,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 export default function SelectPage() {
     const navigate = useNavigate();
     const [selectedId, setSelectedId] = useState(PERIOD_OPTIONS[0].id);
-    const athleteProfile = useAthleteProfile();
+    const { athleteProfile, connected, providerDisplayName } = useAthleteProfile();
 
     const selected = useMemo(
         () => PERIOD_OPTIONS.find((x) => x.id === selectedId) ?? PERIOD_OPTIONS[0],
@@ -41,7 +41,16 @@ export default function SelectPage() {
         : "Recap Insights";
 
     return (
-        <PageShell title={pageTitle}>
+        <PageShell 
+            title={pageTitle}
+            right={
+                connected !== null && (
+                    <span className={`badge ${connected ? 'text-bg-success' : 'text-bg-warning'}`}>
+                        {connected ? 'Connected' : 'Not connected'} • {providerDisplayName}
+                    </span>
+                )
+            }
+        >
             <div className="row justify-content-center">
                 <div className="col-12">
                     <div className="card">
