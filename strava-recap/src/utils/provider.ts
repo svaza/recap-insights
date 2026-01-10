@@ -17,7 +17,7 @@ export function parseProviderType(value: string | undefined | null): ProviderTyp
  * Gets the display-friendly name for a provider.
  */
 export function getProviderDisplayName(provider: ProviderType | string | null): string {
-    if (!provider) return "Provider";
+    if (!provider) return "Not Connected";
     
     switch (provider) {
         case "strava": return "Strava";

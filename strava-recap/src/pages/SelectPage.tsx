@@ -6,6 +6,7 @@ import { formatRangeLabel } from "../utils/format";
 import { possessive } from "../utils/helper";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import PageShell from "../ui/PageShell";
+import type { ProviderBadgeInfo } from "../ui/PageShell";
 
 type PeriodOption = {
     id: string;
@@ -36,20 +37,21 @@ export default function SelectPage() {
 
     const go = () => navigate(buildRecapUrl(selected.query));
 
-    const pageTitle = athleteProfile?.fullName 
-        ? `${possessive(athleteProfile.fullName)} Recap Insights`
+    const pageTitle = athleteProfile?.firstName 
+        ? `${possessive(athleteProfile.firstName)} Recap Insights`
         : "Recap Insights";
+
+    const providerBadge: ProviderBadgeInfo | undefined = connected !== null
+        ? {
+              connected,
+              provider: providerDisplayName,
+          }
+        : undefined;
 
     return (
         <PageShell 
             title={pageTitle}
-            right={
-                connected !== null && (
-                    <span className={`badge ${connected ? 'text-bg-success' : 'text-bg-warning'}`}>
-                        {connected ? 'Connected' : 'Not connected'} • {providerDisplayName}
-                    </span>
-                )
-            }
+            providerBadge={providerBadge}
         >
             <div className="row justify-content-center">
                 <div className="col-12">

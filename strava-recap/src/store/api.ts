@@ -1,0 +1,196 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { ActivityItem } from "../models/models";
+import { getFromStorage, setStorage, clearCacheByPrefix } from "../utils/storageCache";
+import { parseProviderType, type ProviderType } from "../utils/provider";
+
+// ============ Types ============
+
+export type AthleteProfile = {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+};
+
+type AthleteApiResponse =
+    | { connected: false }
+    | { connected: true; provider?: string; profile: AthleteProfile };
+
+type RecapRange = {
+    startUtc: string;
+    endUtc: string;
+};
+
+type ActivityTotal = {
+    activities: number;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
+
+type ActivityBreakdown = {
+    type: string;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
+
+type RecapHighlights = {
+    longestActivity?: ActivityItem;
+    farthestActivity?: ActivityItem;
+};
+
+type RecapApiResponseFlat =
+    | { connected: false }
+    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
+    | { connected: true; error: string };
+
+export type RecapData = {
+    connected: true;
+    provider: ProviderType;
+    range: RecapRange;
+    total: ActivityTotal;
+    breakdown: ActivityBreakdown[];
+    activeDays: string[];
+    highlights: RecapHighlights;
+};
+
+export type ProfileData = {
+    connected: boolean;
+    provider: ProviderType;
+    profile: AthleteProfile | null;
+};
+
+// ============ Cache Keys ============
+
+const PROFILE_CACHE_KEY = "recapcache:profile";
+const PROVIDER_CACHE_KEY = "recapcache:provider";
+const RECAP_CACHE_KEY = "recapcache:activities-summary";
+
+// ============ API Slice ============
+
+export const api = createApi({
+    reducerPath: "api",
+    baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+    tagTypes: ["Profile", "Recap"],
+    endpoints: (builder) => ({
+        // Get athlete profile
+        getProfile: builder.query<ProfileData, void>({
+            queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+                // Check localStorage cache first
+                const cachedProfile = getFromStorage<AthleteProfile>(PROFILE_CACHE_KEY);
+                const cachedProvider = getFromStorage<ProviderType>(PROVIDER_CACHE_KEY);
+                
+                if (cachedProfile && cachedProvider) {
+                    return {
+                        data: {
+                            connected: true,
+                            provider: cachedProvider,
+                            profile: cachedProfile,
+                        },
+                    };
+                }
+
+                // Fetch from API
+                const result = await baseQuery("/me");
+                
+                if (result.error) {
+                    return { error: result.error };
+                }
+
+                const data = result.data as AthleteApiResponse;
+
+                if (data.connected) {
+                    const providerType = parseProviderType(data.provider);
+                    // Cache the data
+                    setStorage(PROFILE_CACHE_KEY, data.profile);
+                    setStorage(PROVIDER_CACHE_KEY, providerType);
+                    
+                    return {
+                        data: {
+                            connected: true,
+                            provider: providerType,
+                            profile: data.profile,
+                        },
+                    };
+                } else {
+                    // Clear cache if not connected
+                    clearCacheByPrefix("recapcache:");
+                    return {
+                        data: {
+                            connected: false,
+                            provider: null as unknown as ProviderType,
+                            profile: null,
+                        },
+                    };
+                }
+            },
+            providesTags: ["Profile"],
+        }),
+
+        // Get recap data
+        getRecap: builder.query<RecapData | { connected: false } | { connected: true; error: string }, string>({
+            queryFn: async (queryString, _queryApi, _extraOptions, baseQuery) => {
+                // Check localStorage cache first
+                const cachedData = getFromStorage<RecapData>(RECAP_CACHE_KEY, queryString);
+                
+                if (cachedData) {
+                    return { data: cachedData };
+                }
+
+                // Fetch from API
+                const result = await baseQuery(`/recap?${queryString}`);
+                
+                if (result.error) {
+                    return { error: result.error };
+                }
+
+                const data = result.data as RecapApiResponseFlat;
+
+                if ("connected" in data && data.connected === false) {
+                    clearCacheByPrefix("recapcache:");
+                    return { data: { connected: false } };
+                }
+
+                if ("error" in data) {
+                    return { data: { connected: true, error: data.error } };
+                }
+
+                const recapData: RecapData = {
+                    connected: true,
+                    provider: parseProviderType(data.provider),
+                    range: data.range,
+                    total: data.total,
+                    breakdown: data.breakdown,
+                    activeDays: data.activeDays,
+                    highlights: data.highlights,
+                };
+
+                // Cache the data
+                setStorage(RECAP_CACHE_KEY, queryString, recapData);
+
+                return { data: recapData };
+            },
+            providesTags: (_result, _error, queryString) => [{ type: "Recap", id: queryString }],
+        }),
+
+        // Disconnect (clear cookies via API and invalidate cache)
+        disconnect: builder.mutation<void, void>({
+            queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+                // Call backend to clear cookies
+                await baseQuery({ url: "/disconnect", method: "POST" });
+                
+                // Clear localStorage cache
+                clearCacheByPrefix("recapcache:");
+                
+                return { data: undefined };
+            },
+            invalidatesTags: ["Profile", "Recap"],
+        }),
+    }),
+});
+
+export const { 
+    useGetProfileQuery, 
+    useGetRecapQuery, 
+    useDisconnectMutation 
+} = api;

@@ -148,6 +148,17 @@ public static class HttpRequestDataExtensions
     }
 
     /// <summary>
+    /// Clears all recap-related cookies (access token, expiration, provider, and OAuth state).
+    /// </summary>
+    public static void ClearAllRecapCookies(this HttpResponseData response)
+    {
+        response.Headers.Add("Set-Cookie", "recap_access_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", "recap_expires_at=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", "recap_provider=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        response.Headers.Add("Set-Cookie", "recap_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+    }
+
+    /// <summary>
     /// Gets the OAuth state value from request cookies.
     /// </summary>
     public static string? GetStateFromCookies(this HttpRequestData req)

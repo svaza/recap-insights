@@ -5,10 +5,12 @@ import { toPng } from "html-to-image";
 import { parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel, num, secondsToHms } from "../utils/format";
 import { possessive } from "../utils/helper";
+import { getActivityEmoji, getActivityDescription } from "../utils/activityTypes";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import { useFetchRecap } from "../hooks/useFetchRecap";
 
 import PageShell from "../ui/PageShell";
+import type { NavItem, NavGroup, ProviderBadgeInfo } from "../ui/PageShell";
 import Stat from "../ui/Stat";
 import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
@@ -49,21 +51,6 @@ function getHeaderTitle(q: ReturnType<typeof parseRecapQuery>) {
     if (q.unit === "month") return "This month";
     if (q.unit === "year" && q.offset === -1) return "Last year";
     return "This year";
-}
-
-function activityEmoji(typeRaw: string) {
-    const t = (typeRaw || "Other").toLowerCase();
-    if (t.includes("run")) return "🏃‍♂️";
-    if (t.includes("ride") || t.includes("bike") || t.includes("cycling")) return "🚴‍♂️";
-    if (t.includes("walk")) return "🚶‍♂️";
-    if (t.includes("hike")) return "🥾";
-    if (t.includes("swim")) return "🏊‍♂️";
-    if (t.includes("workout") || t.includes("strength") || t.includes("weight") || t.includes("hiit")) return "🏋️‍♂️";
-    if (t.includes("yoga") || t.includes("pilates")) return "🧘‍♂️";
-    if (t.includes("row")) return "🚣‍♂️";
-    if (t.includes("ski")) return "⛷️";
-    if (t.includes("snowboard")) return "🏂";
-    return "✨";
 }
 
 function isDistanceType(typeRaw: string) {
@@ -288,7 +275,7 @@ export default function RecapPage() {
                 emoji: "🚀",
                 title: "Biggest effort",
                 value: secondsToHms(highlights.longestActivity.movingTimeSec),
-                subtitle: `${activityEmoji(highlights.longestActivity.type)} ${highlights.longestActivity.name}`,
+                subtitle: `${getActivityEmoji(highlights.longestActivity.type)} ${highlights.longestActivity.name}`,
             });
         }
 
@@ -299,7 +286,7 @@ export default function RecapPage() {
                 emoji: "🏆",
                 title: "Farthest session",
                 value: formatters.formatDistance(highlights.farthestActivity.distanceM, 2),
-                subtitle: `${activityEmoji(highlights.farthestActivity.type)} ${highlights.farthestActivity.name}`,
+                subtitle: `${getActivityEmoji(highlights.farthestActivity.type)} ${highlights.farthestActivity.name}`,
             });
         }
 
@@ -421,34 +408,50 @@ export default function RecapPage() {
         return items.slice(0, 12);
     }, [total, range, activeDays, highlights, formatters]);
 
+    const navGroups: NavGroup[] = [
+        {
+            id: "units",
+            items: [
+                { emoji: "🌍", label: "km", active: units === "km", onClick: () => setUnits("km") },
+                { emoji: "🇺🇸", label: "mi", active: units === "mi", onClick: () => setUnits("mi") },
+            ],
+        },
+    ];
+
+    const navItems: NavItem[] = [
+        {
+            id: "change-period",
+            emoji: "📅",
+            label: "Change period",
+            onClick: () => navigate("/select"),
+        },
+        ...(connected === true
+            ? [
+                  {
+                      id: "download",
+                      emoji: "📸",
+                      label: exporting ? "Exporting…" : "Download",
+                      onClick: downloadShareImage,
+                      disabled: !total || exporting,
+                      variant: "info" as const,
+                  },
+              ]
+            : []),
+    ];
+
+    const providerBadge: ProviderBadgeInfo | undefined = connected !== null
+        ? {
+              connected,
+              provider: providerDisplayName,
+          }
+        : undefined;
+
     return (
         <PageShell
-            title={`${athleteProfile?.fullName ? possessive(athleteProfile.fullName) : "Your"} Recap Insights`}
-            right={
-                <div className="d-flex flex-wrap gap-2 justify-content-end align-items-center">
-                    <div className="btn-group btn-group-sm" role="group" aria-label="Units">
-                        <button type="button" className={`btn ${units === "km" ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => setUnits("km")}>
-                            km
-                        </button>
-                        <button type="button" className={`btn ${units === "mi" ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => setUnits("mi")}>
-                            mi
-                        </button>
-                    </div>
-                    <button type="button" className="btn btn-outline-light btn-sm" onClick={() => navigate("/select")}>Change period</button>
-                    {
-                        connected === true && (
-                            <button
-                                type="button"
-                                className="btn btn-outline-info btn-sm"
-                                onClick={downloadShareImage}
-                                disabled={!total || connected !== true || exporting}
-                            >
-                                {exporting ? "Exporting…" : "Download image"}
-                            </button>
-                        )
-                    }
-                </div>
-            }
+            title={`${athleteProfile?.firstName ? possessive(athleteProfile.firstName) : "Your"} Recap Insights`}
+            navGroups={navGroups}
+            navItems={navItems}
+            providerBadge={providerBadge}
         >
             <div className="row justify-content-center">
                 <div className="col-12 col-lg-10 col-xl-9">
@@ -458,13 +461,6 @@ export default function RecapPage() {
                                 <div>
                                     <div className="fw-bold fs-5">{headerTitle}</div>
                                     <div className="text-body-secondary">{rangeLabel}</div>
-                                </div>
-                                <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
-                                    {connected !== null && (
-                                        <span className={`badge ${connected ? 'text-bg-success' : 'text-bg-warning'}`}>
-                                            {connected ? 'Connected' : 'Not connected'} • {providerDisplayName}
-                                        </span>
-                                    )}
                                 </div>
                             </div>
 
@@ -519,33 +515,29 @@ export default function RecapPage() {
 
                                 <div className="mt-4">
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
-                                    <p className="text-body-secondary small">Contextual summary by activity type</p>
-                                    <div className="list-group">
+                                    <p className="text-body-secondary small mb-2">Contextual summary by activity type</p>
+                                    <div className="row g-0">
                                         {breakdown.map((item) => (
-                                            <div key={item.type} className="list-group-item">
-                                                <div className="d-flex align-items-center gap-2 mb-1">
-                                                    <span className="fs-4" aria-hidden="true">{activityEmoji(item.type)}</span>
-                                                    <div className="fw-semibold text-truncate">{item.type}</div>
+                                            <div key={item.type} className="col-12 col-md-6">
+                                                <div className="border p-2 ps-3">
+                                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                                        <span className="fs-4" aria-hidden="true">{getActivityEmoji(item.type)}</span>
+                                                        <div className="fw-semibold text-truncate">{getActivityDescription(item.type)}</div>
+                                                    </div>
+                                                    <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
                                                 </div>
-                                                <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
                                             </div>
                                         ))}
                                         {breakdown.length === 0 && (
-                                            <div className="list-group-item text-body-secondary">No activities in this range.</div>
+                                            <div className="col-12">
+                                                <div className="border p-3 text-body-secondary">No activities in this range.</div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
-                    {
-                        connected === true && (
-                            <div className="d-flex justify-content-between text-body-secondary mt-3 small fw-semibold">
-                                <div>Generated by Recap</div>
-                                <div>{new Date().toLocaleDateString()}</div>
-                            </div>
-                        )
-                    }
                 </div>
             </div>
         </PageShell>

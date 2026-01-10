@@ -3,6 +3,7 @@ import SelectPage from "./pages/SelectPage";
 import RecapPage from "./pages/RecapPage";
 import ProviderCallbackPage from "./pages/ProviderCallbackPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import "./App.css";
 
 export default function App() {
     return (
