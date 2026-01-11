@@ -16,14 +16,28 @@ builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSecti
 builder.Services.AddScoped<StravaAuthService>();
 builder.Services.AddScoped<StravaTokenService>();
 builder.Services.AddScoped<StravaActivityService>();
-builder.Services.AddScoped<StravaAthleteProfileService>();
+builder.Services.AddScoped<MockActivityService>();
+builder.Services.AddScoped<MockAthleteProfileService>();
+
+// Register Intervals.icu services
+builder.Services.AddScoped<IntervalsIcuAuthService>();
+builder.Services.AddScoped<IntervalsIcuTokenService>();
+builder.Services.AddScoped<IntervalsIcuActivityService>();
 
 // Register Strava provider
 builder.Services.AddScoped<StravaProvider>(sp => new StravaProvider(
     sp.GetRequiredService<StravaAuthService>(),
     sp.GetRequiredService<StravaTokenService>(),
-    sp.GetRequiredService<StravaAthleteProfileService>(),
+    sp.GetRequiredService<MockAthleteProfileService>(),
     sp.GetRequiredService<StravaActivityService>()
+));
+
+// Register Intervals.icu provider
+builder.Services.AddScoped<IntervalsIcuProvider>(sp => new IntervalsIcuProvider(
+    sp.GetRequiredService<IntervalsIcuAuthService>(),
+    sp.GetRequiredService<IntervalsIcuTokenService>(),
+    sp.GetRequiredService<MockAthleteProfileService>(),
+    sp.GetRequiredService<IntervalsIcuActivityService>()
 ));
 
 // Register provider registry and factory
@@ -31,7 +45,7 @@ builder.Services.AddScoped<ProviderRegistry>(sp =>
 {
     var registry = new ProviderRegistry();
     registry.Register(ProviderType.Strava, sp.GetRequiredService<StravaProvider>());
-    // Future: registry.Register(ProviderType.IntervalsIcu, sp.GetRequiredService<IntervalsIcuProvider>());
+    registry.Register(ProviderType.IntervalsIcu, sp.GetRequiredService<IntervalsIcuProvider>());
     return registry;
 });
 

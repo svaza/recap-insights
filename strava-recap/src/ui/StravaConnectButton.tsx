@@ -11,7 +11,7 @@ export function StravaConnectButton({
     disabled = false,
     loading = false,
     variant = "orange",
-    fullWidth = true,
+    fullWidth = false,
 }: StravaConnectButtonProps) {
     const isDisabled = disabled || loading;
 

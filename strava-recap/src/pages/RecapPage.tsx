@@ -15,6 +15,7 @@ import Stat from "../ui/Stat";
 import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
 import { StravaConnectButton } from "../ui/StravaConnectButton";
+import { IntervalsIcuConnectButton } from "../ui/IntervalsIcuConnectButton";
 
 type UnitSystem = "km" | "mi";
 
@@ -470,9 +471,12 @@ export default function RecapPage() {
                             {connected === false && (
                                 <div className="mt-3">
                                     <p className="mb-3">Connect a provider (read-only) to generate this recap.</p>
-                                    <div className="d-flex flex-column flex-sm-row gap-2">
-                                        <StravaConnectButton onClick={() => connectProvider("strava")} />
-                                        <button type="button" className="btn btn-outline-secondary flex-fill" onClick={() => navigate("/select")}>
+                                    <div className="d-flex flex-column gap-2">
+                                        <div className="d-flex gap-2 justify-content-center flex-wrap">
+                                            <StravaConnectButton onClick={() => connectProvider("strava")} />
+                                            <IntervalsIcuConnectButton onClick={() => connectProvider("intervalsicu")} />
+                                        </div>
+                                        <button type="button" className="btn btn-outline-secondary" onClick={() => navigate("/select")}>
                                             Back
                                         </button>
                                     </div>

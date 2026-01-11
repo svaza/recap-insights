@@ -10,22 +10,21 @@ using System.Net.Http.Json;
 namespace strava_recap_api.Services;
 
 /// <summary>
-/// Strava-specific token exchange service implementation.
+/// Intervals.icu-specific token exchange service implementation.
 /// Handles callback parameter validation and token exchange.
 /// </summary>
-public class StravaTokenService : ITokenService
+public class IntervalsIcuTokenService : ITokenService
 {
-    private const string TokenEndpoint = "oauth/token";
+    private const string TokenEndpoint = "https://intervals.icu/api/oauth/token";
 
     private readonly HttpClient _http;
     private readonly ClientSetting _clientSettings;
-    private readonly ILogger<StravaTokenService> _logger;
+    private readonly ILogger<IntervalsIcuTokenService> _logger;
 
-    public StravaTokenService(HttpClient http, IOptions<AuthenticationOptions> options, ILogger<StravaTokenService> logger)
+    public IntervalsIcuTokenService(HttpClient http, IOptions<AuthenticationOptions> options, ILogger<IntervalsIcuTokenService> logger)
     {
         _http = http;
-        _http.BaseAddress = new Uri("https://www.strava.com/api/v3/");
-        _clientSettings = options.Value.GetProviderSettings(ProviderType.Strava);
+        _clientSettings = options.Value.GetProviderSettings(ProviderType.IntervalsIcu);
         _logger = logger;
     }
 
@@ -39,12 +38,12 @@ public class StravaTokenService : ITokenService
             // Extract query parameters
             var error = req.GetErrorFromQuery();
             var code = req.GetCodeFromQuery();
-            var state = req.GetStateFromQuery();
+            var state = WebUtility.UrlDecode(req.GetStateFromQuery() ?? string.Empty);
 
             // Check if user denied consent
             if (!string.IsNullOrEmpty(error))
             {
-                _logger.LogWarning("User denied Strava consent: {Error}", error);
+                _logger.LogWarning("User denied Intervals.icu consent: {Error}", error);
                 return new CallbackResult
                 {
                     Success = false,
@@ -66,7 +65,7 @@ public class StravaTokenService : ITokenService
             }
 
             // Validate CSRF state token
-            var expectedState = req.GetStateFromCookies();
+            var expectedState = WebUtility.UrlDecode(req.GetStateFromCookies() ?? string.Empty);
             if (string.IsNullOrWhiteSpace(state) || string.IsNullOrWhiteSpace(expectedState) || state != expectedState)
             {
                 _logger.LogError("State validation failed - possible CSRF attempt or session expired");
@@ -82,7 +81,7 @@ public class StravaTokenService : ITokenService
 
             // Exchange authorization code for tokens
             var token = await ExchangeCodeForTokenAsync(code);
-            _logger.LogInformation("Successfully obtained access token from Strava, expires at: {ExpiresAt}", token.ExpiresAt);
+            _logger.LogInformation("Successfully obtained access token from Intervals.icu, expires at: {ExpiresAt}", token.ExpiresAt);
 
             // Extract returnTo from state
             var returnTo = state.ExtractReturnToFromState();
@@ -96,11 +95,11 @@ public class StravaTokenService : ITokenService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error during token exchange with Strava");
+            _logger.LogError(ex, "HTTP error during token exchange with Intervals.icu");
             return new CallbackResult
             {
                 Success = false,
-                ErrorMessage = "Strava API error",
+                ErrorMessage = "Intervals.icu API error",
                 ErrorStatusCode = (int)HttpStatusCode.BadGateway
             };
         }
@@ -127,7 +126,7 @@ public class StravaTokenService : ITokenService
     }
 
     /// <summary>
-    /// Exchanges an authorization code for Strava access and refresh tokens.
+    /// Exchanges an authorization code for Intervals.icu access and refresh tokens.
     /// </summary>
     private async Task<TokenResponse> ExchangeCodeForTokenAsync(string code)
     {
@@ -142,14 +141,21 @@ public class StravaTokenService : ITokenService
         var response = await _http.PostAsync(TokenEndpoint, form);
         response.EnsureSuccessStatusCode();
 
-        var tokenData = await response.Content.ReadFromJsonAsync<StravaTokenResponse>()
-            ?? throw new InvalidOperationException("No token response from Strava");
+        var tokenData = await response.Content.ReadFromJsonAsync<IntervalsIcuTokenResponse>()
+            ?? throw new InvalidOperationException("No token response from Intervals.icu");
 
-        return new TokenResponse(tokenData.access_token, tokenData.expires_at, tokenData.refresh_token);
+        // If expires_at is 0, set default expiration to 30 minutes from now
+        var expiresAt = tokenData.expires_at;
+        if (expiresAt == 0)
+        {
+            expiresAt = DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds();
+        }
+
+        return new TokenResponse(tokenData.access_token, expiresAt, tokenData.refresh_token);
     }
 
     /// <summary>
-    /// Strava token exchange response DTO.
+    /// Intervals.icu token exchange response DTO.
     /// </summary>
-    private record StravaTokenResponse(string access_token, long expires_at, string refresh_token);
+    private record IntervalsIcuTokenResponse(string access_token, long expires_at, string refresh_token);
 }

@@ -1,0 +1,77 @@
+.btnProvider {
+    width: 237px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    border: 1px solid transparent;
+    transition: transform 0.06s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.btnProvider:focus {
+    outline: none;
+}
+
+.btnProvider:focus-visible {
+    box-shadow: 0 0 0 4px rgba(214, 47, 90, 0.25), 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.btnProvider:hover:not(:disabled) {
+    filter: brightness(1.02);
+    transform: translateY(-1px);
+}
+
+.btnProvider:active:not(:disabled) {
+    transform: translateY(0px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.btnProvider:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btnProviderIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.btnProviderText {
+    line-height: 1;
+}
+
+/* Intervals.icu accent color variant */
+.btnIntervals {
+    background: #d62f5a;
+    color: #fff;
+}
+
+/* White button variant */
+.btnIntervalsWhite {
+    background: #fff;
+    color: #111;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btnIntervalsWhite .btnProviderIcon {
+    background: rgba(214, 47, 90, 0.1);
+    color: #d62f5a;
+}
+
+/* Full width option */
+.fullWidth {
+    width: 100%;
+}
