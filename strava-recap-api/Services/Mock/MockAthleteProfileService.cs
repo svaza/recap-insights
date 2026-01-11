@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using strava_recap_api.Entities;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.Mock;
 
 /// <summary>
 /// Mock athlete profile service that returns a hardcoded profile.

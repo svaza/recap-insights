@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using strava_recap_api.Entities;
 using strava_recap_api.Models;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.Mock;
 
 /// <summary>
 /// Mock activity service that returns deterministic, hardcoded activities filtered by the requested date range.

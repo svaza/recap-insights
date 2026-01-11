@@ -7,7 +7,7 @@ using strava_recap_api.Providers;
 using System.Net;
 using System.Net.Http.Json;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.IntervalsIcu;
 
 /// <summary>
 /// Intervals.icu-specific token exchange service implementation.

@@ -5,26 +5,29 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using strava_recap_api.Entities;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.IntervalsIcu;
 
 /// <summary>
-/// Strava-specific athlete profile service implementation.
-/// Handles fetching athlete profile from Strava API.
+/// Intervals.icu-specific athlete profile service implementation.
+/// Handles fetching athlete profile from Intervals.icu API.
+/// Requires SETTINGS:READ scope.
 /// </summary>
-public class StravaAthleteProfileService : IAthleteProfileService
+public class IntervalsIcuAthleteProfileService : IAthleteProfileService
 {
+    private const string AthleteEndpoint = "api/v1/athlete/0";
+
     private readonly HttpClient _http;
-    private readonly ILogger<StravaAthleteProfileService> _logger;
+    private readonly ILogger<IntervalsIcuAthleteProfileService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public StravaAthleteProfileService(HttpClient http, ILogger<StravaAthleteProfileService> logger)
+    public IntervalsIcuAthleteProfileService(HttpClient http, ILogger<IntervalsIcuAthleteProfileService> logger)
     {
         _http = http;
-        _http.BaseAddress = new Uri("https://www.strava.com/api/v3/");
+        _http.BaseAddress = new Uri("https://intervals.icu/");
         _logger = logger;
     }
 
@@ -35,9 +38,9 @@ public class StravaAthleteProfileService : IAthleteProfileService
     {
         try
         {
-            _logger.LogDebug("Fetching athlete profile from Strava");
+            _logger.LogDebug("Fetching athlete profile from Intervals.icu");
 
-            using var msg = new HttpRequestMessage(HttpMethod.Get, "athlete");
+            using var msg = new HttpRequestMessage(HttpMethod.Get, AthleteEndpoint);
             msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authRequest.AccessToken);
 
             using var resp = await _http.SendAsync(msg);
@@ -49,7 +52,7 @@ public class StravaAthleteProfileService : IAthleteProfileService
             }
 
             var body = await resp.Content.ReadAsStringAsync();
-            var athlete = JsonSerializer.Deserialize<StravaAthlete>(body, JsonOptions);
+            var athlete = JsonSerializer.Deserialize<IntervalsIcuAthleteDto>(body, JsonOptions);
 
             if (athlete == null)
             {
@@ -79,9 +82,9 @@ public class StravaAthleteProfileService : IAthleteProfileService
     }
 
     /// <summary>
-    /// Strava athlete DTO for deserialization.
+    /// Intervals.icu athlete DTO for deserialization.
     /// </summary>
-    private sealed class StravaAthlete
+    private sealed class IntervalsIcuAthleteDto
     {
         [JsonPropertyName("firstname")]
         public string? FirstName { get; set; }

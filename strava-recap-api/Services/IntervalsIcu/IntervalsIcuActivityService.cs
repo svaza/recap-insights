@@ -1,10 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using strava_recap_api.Entities;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.IntervalsIcu;
 
 /// <summary>
 /// Intervals.icu-specific activity service implementation.
@@ -218,15 +219,25 @@ public class IntervalsIcuActivityService : IActivityService
     /// </summary>
     private sealed class IntervalsIcuActivityDto
     {
+        [JsonPropertyName("id")]
         public string? Id { get; set; }
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
+        [JsonPropertyName("type")]
         public string? Type { get; set; }
+        [JsonPropertyName("start_date_local")]
         public string? StartDateLocal { get; set; }
+        [JsonPropertyName("start_date")]
         public DateTimeOffset StartDate { get; set; }
+        [JsonPropertyName("distance")]
         public double? Distance { get; set; }
+        [JsonPropertyName("moving_time")]
         public int? MovingTime { get; set; }
+        [JsonPropertyName("total_elevation_gain")]
         public double? TotalElevationGain { get; set; }
+        [JsonPropertyName("average_heartrate")]
         public double? AverageHeartrate { get; set; }
+        [JsonPropertyName("max_heartrate")]
         public double? MaxHeartrate { get; set; }
     }
 }

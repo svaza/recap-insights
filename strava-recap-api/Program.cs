@@ -4,7 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using strava_recap_api.Options;
 using strava_recap_api.Providers;
-using strava_recap_api.Services;
+using strava_recap_api.Services.IntervalsIcu;
+using strava_recap_api.Services.Mock;
+using strava_recap_api.Services.Strava;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
@@ -16,6 +18,8 @@ builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSecti
 builder.Services.AddScoped<StravaAuthService>();
 builder.Services.AddScoped<StravaTokenService>();
 builder.Services.AddScoped<StravaActivityService>();
+builder.Services.AddScoped<StravaAthleteProfileService>();
+
 builder.Services.AddScoped<MockActivityService>();
 builder.Services.AddScoped<MockAthleteProfileService>();
 
@@ -23,12 +27,13 @@ builder.Services.AddScoped<MockAthleteProfileService>();
 builder.Services.AddScoped<IntervalsIcuAuthService>();
 builder.Services.AddScoped<IntervalsIcuTokenService>();
 builder.Services.AddScoped<IntervalsIcuActivityService>();
+builder.Services.AddScoped<IntervalsIcuAthleteProfileService>();
 
 // Register Strava provider
 builder.Services.AddScoped<StravaProvider>(sp => new StravaProvider(
     sp.GetRequiredService<StravaAuthService>(),
     sp.GetRequiredService<StravaTokenService>(),
-    sp.GetRequiredService<MockAthleteProfileService>(),
+    sp.GetRequiredService<StravaAthleteProfileService>(),
     sp.GetRequiredService<StravaActivityService>()
 ));
 
@@ -36,7 +41,7 @@ builder.Services.AddScoped<StravaProvider>(sp => new StravaProvider(
 builder.Services.AddScoped<IntervalsIcuProvider>(sp => new IntervalsIcuProvider(
     sp.GetRequiredService<IntervalsIcuAuthService>(),
     sp.GetRequiredService<IntervalsIcuTokenService>(),
-    sp.GetRequiredService<MockAthleteProfileService>(),
+    sp.GetRequiredService<IntervalsIcuAthleteProfileService>(),
     sp.GetRequiredService<IntervalsIcuActivityService>()
 ));
 

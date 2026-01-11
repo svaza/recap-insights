@@ -7,7 +7,7 @@ using strava_recap_api.Providers;
 using System.Net;
 using System.Net.Http.Json;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.Strava;
 
 /// <summary>
 /// Strava-specific token exchange service implementation.

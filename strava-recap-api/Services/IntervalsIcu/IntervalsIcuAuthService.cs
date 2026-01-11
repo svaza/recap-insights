@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using strava_recap_api.Options;
 using strava_recap_api.Providers;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.IntervalsIcu;
 
 /// <summary>
 /// Intervals.icu-specific OAuth authorization service implementation.

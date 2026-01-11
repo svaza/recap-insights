@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using strava_recap_api.Entities;
 
-namespace strava_recap_api.Services;
+namespace strava_recap_api.Services.Strava;
 
 /// <summary>
 /// Strava-specific activity service implementation.
