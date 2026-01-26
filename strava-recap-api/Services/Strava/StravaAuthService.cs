@@ -11,15 +11,18 @@ namespace strava_recap_api.Services.Strava;
 public class StravaAuthService : IAuthService
 {
     private const string AuthorizeEndpoint = "https://www.strava.com/oauth/authorize";
+    private const string DeauthorizeEndpoint = "https://www.strava.com/oauth/deauthorize";
     private const string Scope = "activity:read_all";
 
     private readonly AuthenticationOptions _options;
     private readonly ClientSetting _clientSettings;
+    private readonly HttpClient _httpClient;
 
-    public StravaAuthService(IOptions<AuthenticationOptions> options)
+    public StravaAuthService(IOptions<AuthenticationOptions> options, HttpClient httpClient)
     {
         _options = options.Value;
         _clientSettings = _options.GetProviderSettings(ProviderType.Strava);
+        _httpClient = httpClient;
     }
 
     /// <summary>
@@ -36,5 +39,28 @@ public class StravaAuthService : IAuthService
             $"&approval_prompt=force" +
             $"&scope={WebUtility.UrlEncode(Scope)}" +
             $"&state={WebUtility.UrlEncode(state)}";
+    }
+
+    /// <summary>
+    /// Revokes the Strava access token.
+    /// </summary>
+    /// <param name="accessToken">Access token to revoke</param>
+    /// <returns>True if revocation succeeded, false otherwise</returns>
+    public async Task<bool> RevokeAccessAsync(string accessToken)
+    {
+        try
+        {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                { "access_token", accessToken }
+            });
+
+            var response = await _httpClient.PostAsync(DeauthorizeEndpoint, content);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

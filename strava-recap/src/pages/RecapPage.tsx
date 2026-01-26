@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toPng } from "html-to-image";
 
 import { parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel, num, secondsToHms } from "../utils/format";
 import { possessive } from "../utils/helper";
 import { getActivityEmoji, getActivityDescription } from "../utils/activityTypes";
+import { getActivityGroup } from "../utils/activityGroups";
+import { getDisplayStatsForType } from "../utils/activityStatsConfig";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import { useFetchRecap } from "../hooks/useFetchRecap";
 
@@ -14,8 +16,7 @@ import type { NavItem, NavGroup, ProviderBadgeInfo } from "../ui/PageShell";
 import Stat from "../ui/Stat";
 import WowCarousel from "../ui/WowCarousel";
 import type { WowItem } from "../ui/WowItemCard";
-import { StravaConnectButton } from "../ui/StravaConnectButton";
-import { IntervalsIcuConnectButton } from "../ui/IntervalsIcuConnectButton";
+import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
 
 type UnitSystem = "km" | "mi";
 
@@ -52,38 +53,6 @@ function getHeaderTitle(q: ReturnType<typeof parseRecapQuery>) {
     if (q.unit === "month") return "This month";
     if (q.unit === "year" && q.offset === -1) return "Last year";
     return "This year";
-}
-
-function isDistanceType(typeRaw: string) {
-    const t = (typeRaw || "").toLowerCase();
-    return (
-        t.includes("run") ||
-        t.includes("ride") ||
-        t.includes("walk") ||
-        t.includes("hike") ||
-        t.includes("swim") ||
-        t.includes("row") ||
-        t.includes("ski") ||
-        t.includes("snowboard")
-    );
-}
-
-function isTimeOnlyType(typeRaw: string) {
-    const t = (typeRaw || "").toLowerCase();
-    return (
-        t.includes("workout") ||
-        t.includes("strength") ||
-        t.includes("weight") ||
-        t.includes("hiit") ||
-        t.includes("yoga") ||
-        t.includes("pilates")
-    );
-}
-
-function shouldShowElevation(typeRaw: string, elevationM: number) {
-    const t = (typeRaw || "").toLowerCase();
-    const meaningful = elevationM >= 50;
-    return meaningful && (t.includes("hike") || t.includes("trail") || t.includes("run") || t.includes("ride"));
 }
 
 function computeLongestStreak(activeDayKeys: string[]) {
@@ -219,21 +188,20 @@ export default function RecapPage() {
         type: string,
         info: { distanceM: number; movingTimeSec: number; elevationM: number }
     ) => {
-        if (isDistanceType(type) && info.distanceM > 0) {
-            const parts: string[] = [
-                `${formatters.formatDistance(info.distanceM, 1)}`,
-                `${secondsToHms(info.movingTimeSec)}`,
-            ];
-            if (shouldShowElevation(type, info.elevationM)) parts.push(formatters.formatElevation(info.elevationM));
-            return parts.join(" • ");
+        const displayStats = getDisplayStatsForType(type, info);
+        const parts: string[] = [];
+
+        for (const stat of displayStats) {
+            if (stat === 'distance') {
+                parts.push(formatters.formatDistance(info.distanceM, 1));
+            } else if (stat === 'time') {
+                parts.push(secondsToHms(info.movingTimeSec));
+            } else if (stat === 'elevation') {
+                parts.push(formatters.formatElevation(info.elevationM));
+            }
         }
 
-        if (isTimeOnlyType(type)) {
-            return `${secondsToHms(info.movingTimeSec)}`;
-        }
-
-        if (info.distanceM > 0) return `${formatters.formatDistance(info.distanceM, 1)}`;
-        return `${secondsToHms(info.movingTimeSec)}`;
+        return parts.join(" • ") || secondsToHms(info.movingTimeSec);
     };
 
     const wowItems: WowItem[] = useMemo(() => {
@@ -470,16 +438,15 @@ export default function RecapPage() {
 
                             {connected === false && (
                                 <div className="mt-3">
-                                    <p className="mb-3">Connect a provider (read-only) to generate this recap.</p>
-                                    <div className="d-flex flex-column gap-2">
-                                        <div className="d-flex gap-2 justify-content-center flex-wrap">
-                                            <StravaConnectButton onClick={() => connectProvider("strava")} />
-                                            <IntervalsIcuConnectButton onClick={() => connectProvider("intervalsicu")} />
-                                        </div>
-                                        <button type="button" className="btn btn-outline-secondary" onClick={() => navigate("/select")}>
-                                            Back
-                                        </button>
-                                    </div>
+                                    <ConnectProviderPrompt
+                                        message="Connect a provider (read-only) to generate this recap."
+                                        onConnectStrava={() => connectProvider("strava")}
+                                        onConnectIntervalsIcu={() => connectProvider("intervalsicu")}
+                                        backButton={{
+                                            label: "Back",
+                                            onClick: () => navigate("/select"),
+                                        }}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -521,17 +488,30 @@ export default function RecapPage() {
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
                                     <p className="text-body-secondary small mb-2">Contextual summary by activity type</p>
                                     <div className="row g-0">
-                                        {breakdown.map((item) => (
-                                            <div key={item.type} className="col-12 col-md-6">
-                                                <div className="border p-2 ps-3">
-                                                    <div className="d-flex align-items-center gap-2 mb-1">
-                                                        <span className="fs-4" aria-hidden="true">{getActivityEmoji(item.type)}</span>
-                                                        <div className="fw-semibold text-truncate">{getActivityDescription(item.type)}</div>
+                                        {breakdown.map((item) => {
+                                            const activityGroup = getActivityGroup(item.type);
+                                            const flyerUrl = `/flyer?${location.search.slice(1)}&activityGroup=${activityGroup}`;
+                                            return (
+                                                <div key={item.type} className="col-12 col-md-6">
+                                                    <div className="border p-2 ps-3">
+                                                        <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                                            <div className="d-flex align-items-center gap-2 min-w-0">
+                                                                <span className="fs-4" aria-hidden="true">{getActivityEmoji(item.type)}</span>
+                                                                <div className="fw-semibold text-truncate">{getActivityDescription(item.type)}</div>
+                                                            </div>
+                                                            <Link
+                                                                to={flyerUrl}
+                                                                className="btn btn-outline-secondary btn-sm flex-shrink-0"
+                                                                title="Generate flyer for this activity"
+                                                            >
+                                                                🖼️ Flyer
+                                                            </Link>
+                                                        </div>
+                                                        <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
                                                     </div>
-                                                    <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {breakdown.length === 0 && (
                                             <div className="col-12">
                                                 <div className="border p-3 text-body-secondary">No activities in this range.</div>

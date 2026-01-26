@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import SelectPage from "./pages/SelectPage";
 import RecapPage from "./pages/RecapPage";
+import FlyerPage from "./pages/FlyerPage";
 import ProviderCallbackPage from "./pages/ProviderCallbackPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import "./App.css";
@@ -11,6 +12,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/select" replace />} />
             <Route path="/select" element={<SelectPage />} />
             <Route path="/recap" element={<RecapPage />} />
+            <Route path="/flyer" element={<FlyerPage />} />
             <Route path="/provider/callback" element={<ProviderCallbackPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="*" element={<Navigate to="/select" replace />} />

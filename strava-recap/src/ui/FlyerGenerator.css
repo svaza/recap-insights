@@ -1,0 +1,232 @@
+/**
+ * FlyerGenerator styles
+ * Styles for the flyer preview and export
+ */
+
+.flyer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.flyer-controls {
+    width: 100%;
+    max-width: 400px;
+}
+
+.flyer-preview-wrapper {
+    width: auto;
+    height: 70vh;
+    aspect-ratio: 9 / 16;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.flyer-preview {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* Fallback background */
+    background-color: #1a1a2e;
+}
+
+/* Gradient overlay for text readability */
+.flyer-gradient-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+/* Alignment-specific gradient overlays */
+.flyer-align-left .flyer-gradient-overlay {
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.4) 50%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
+}
+
+.flyer-align-right .flyer-gradient-overlay {
+    background: linear-gradient(
+        270deg,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.4) 50%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
+}
+
+.flyer-align-bottom .flyer-gradient-overlay {
+    background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.8) 0%,
+        rgba(0, 0, 0, 0.4) 40%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
+}
+
+/* Content container */
+.flyer-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+    color: #ffffff;
+}
+
+/* Alignment-specific content positioning */
+.flyer-align-left .flyer-content {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.flyer-align-right .flyer-content {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.flyer-align-bottom .flyer-content {
+    align-items: center;
+    text-align: center;
+    justify-content: flex-end;
+}
+
+/* Header styles */
+.flyer-header {
+    margin-bottom: auto;
+}
+
+.flyer-align-bottom .flyer-header {
+    margin-bottom: 0;
+    order: 2;
+}
+
+.flyer-athlete-name {
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 0;
+    line-height: 1.2;
+}
+
+.flyer-title-subtitle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 8px;
+    opacity: 0.95;
+}
+
+.flyer-date-range {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    margin-bottom: 4px;
+}
+
+.flyer-group-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    opacity: 0.95;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Stats styles */
+.flyer-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: auto;
+    margin-bottom: 24px;
+}
+
+.flyer-align-bottom .flyer-stats {
+    order: 1;
+    margin-bottom: 16px;
+}
+
+.flyer-stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.flyer-align-left .flyer-stat-item {
+    align-items: flex-start;
+}
+
+.flyer-align-right .flyer-stat-item {
+    align-items: flex-end;
+}
+
+.flyer-align-bottom .flyer-stat-item {
+    align-items: center;
+}
+
+.flyer-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.flyer-stat-unit {
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.flyer-stat-label {
+    font-size: 0.625rem;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Footer styles */
+.flyer-footer {
+    margin-top: auto;
+    padding-top: 16px;
+}
+
+.flyer-align-bottom .flyer-footer {
+    order: 3;
+    margin-top: 16px;
+}
+
+.flyer-brand {
+    font-size: 0.5rem;
+    opacity: 0.5;
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments for actual export size */
+@media (min-width: 1080px) {
+    .flyer-preview-wrapper {
+        max-width: 540px;
+    }
+}
+
+/* Animation for export button */
+.btn-success:disabled {
+    opacity: 0.8;
+}
