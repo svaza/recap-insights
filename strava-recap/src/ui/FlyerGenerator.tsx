@@ -3,7 +3,7 @@
  * Renders the flyer visual with background, overlays, and stats
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import type { FlyerData, FlyerAlignment } from '../models/flyer';
 import { getAlignmentClass } from '../utils/flyerStats';
@@ -13,10 +13,42 @@ type FlyerGeneratorProps = {
     data: FlyerData;
 };
 
+/**
+ * Converts an image URL to a base64 data URL for reliable PNG export
+ */
+async function toDataURL(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
 export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
     const [alignment, setAlignment] = useState<FlyerAlignment>('left');
     const [isExporting, setIsExporting] = useState(false);
+    const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
     const flyerRef = useRef<HTMLDivElement>(null);
+
+    // Pre-load background image as data URL for reliable export
+    useEffect(() => {
+        let cancelled = false;
+        toDataURL(data.groupInfo.backgroundPath)
+            .then((dataUrl) => {
+                if (!cancelled) {
+                    setBackgroundDataUrl(dataUrl);
+                }
+            })
+            .catch((err) => {
+                console.warn('Failed to pre-load background image:', err);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [data.groupInfo.backgroundPath]);
 
     const handleAlignmentChange = (newAlignment: FlyerAlignment) => {
         setAlignment(newAlignment);
@@ -43,6 +75,11 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
             setIsExporting(false);
         }
     }, [data.athleteFirstName, data.groupInfo.label, isExporting]);
+
+    // Use data URL for background if available (for reliable export), otherwise use original path
+    const backgroundImageStyle = backgroundDataUrl
+        ? `url(${backgroundDataUrl})`
+        : `url(${data.groupInfo.backgroundPath})`;
 
     const alignmentClass = getAlignmentClass(alignment);
 
@@ -98,7 +135,7 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
                     ref={flyerRef}
                     className={`flyer-preview ${alignmentClass}`}
                     style={{
-                        backgroundImage: `url(${data.groupInfo.backgroundPath})`,
+                        backgroundImage: backgroundImageStyle,
                     }}
                 >
                     {/* Gradient overlay for text readability */}
