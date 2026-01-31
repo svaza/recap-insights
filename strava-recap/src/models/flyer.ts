@@ -73,6 +73,29 @@ export interface FlyerAggregates {
 }
 
 /**
+ * Best effort activity highlight
+ */
+export interface BestEffort {
+    /** Type of best effort: 'longest' (by time) or 'farthest' (by distance) */
+    type: 'longest' | 'farthest';
+
+    /** Activity name */
+    name: string;
+
+    /** Activity type (e.g., 'Run', 'Ride') */
+    activityType: string;
+
+    /** Formatted distance value */
+    formattedDistance: string;
+
+    /** Formatted time value */
+    formattedTime: string;
+
+    /** Label describing the best effort */
+    label: string;
+}
+
+/**
  * Single statistic item to display on flyer
  */
 export interface FlyerStatItem {
@@ -108,6 +131,9 @@ export interface FlyerData {
     /** Date range label (e.g., "Jan 01, 2026 – Jan 25, 2026") */
     rangeLabel: string;
 
+    /** Dynamic tagline based on period (e.g., "30 Day Running Recap") */
+    tagline: string;
+
     /** Time range description (e.g., "Last 30 days") */
     rangeTitle: string;
 
@@ -116,6 +142,15 @@ export interface FlyerData {
 
     /** Selected stats to display (3-5 items) */
     stats: FlyerStatItem[];
+
+    /** Optional best effort highlight for this activity group */
+    bestEffort?: BestEffort;
+
+    /** Total number of active days in the period */
+    activeDaysCount: number;
+
+    /** Longest consecutive streak of active days */
+    longestStreak: number;
 }
 
 /**
