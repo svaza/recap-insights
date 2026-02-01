@@ -67,3 +67,31 @@
   cursor: wait;
   opacity: 0.7;
 }
+
+.connect-provider-tip {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+  animation: connect-tip-glow 1s ease-in-out infinite;
+}
+
+@keyframes connect-tip-glow {
+  0% {
+    box-shadow: 0 0 0 rgba(80, 200, 255, 0), 0 0 0 rgba(80, 200, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(80, 200, 255, 0.5), 0 0 24px rgba(80, 200, 255, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(80, 200, 255, 0), 0 0 0 rgba(80, 200, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connect-provider-tip {
+    animation: none;
+  }
+}
