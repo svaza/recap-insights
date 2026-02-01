@@ -4,272 +4,308 @@
  */
 
 .flyer-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .flyer-controls {
-    width: 100%;
-    max-width: 400px;
+  width: 100%;
+  max-width: 400px;
 }
 
+/* Preview wrapper */
 .flyer-preview-wrapper {
-    width: auto;
-    height: 70vh;
-    aspect-ratio: 9 / 16;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 100%;
+
+  /* Slightly larger text in preview */
+  --flyer-scale: 1;
 }
 
+.flyer-preview-host {
+  width: 100%;
+  height: 100%;
+}
+
+/* Shared flyer layout */
 .flyer-preview {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    /* Fallback background */
-    background-color: #1a1a2e;
-    overflow: hidden;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: #1a1a2e;
+  overflow: hidden;
 }
 
-/* Background image element (replaces CSS background-image for reliable export) */
+/* Background image */
 .flyer-background-img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    z-index: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+
+  /* Helps Safari sometimes */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-/* Gradient overlay for text readability - bottom focused */
+/* Gradient overlay */
 .flyer-gradient-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    background: linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.85) 0%,
-        rgba(0, 0, 0, 0.6) 35%,
-        rgba(0, 0, 0, 0.1) 60%,
-        rgba(0, 0, 0, 0.3) 100%
-    );
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.6) 35%,
+    rgba(0, 0, 0, 0.1) 60%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  z-index: 1;
 }
 
-/* Content container */
+/* Content */
 .flyer-content {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 24px;
-    color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: calc(24px * var(--flyer-scale, 1));
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
 }
 
-/* Header styles - top of flyer */
 .flyer-header {
-    text-align: left;
+  text-align: left;
 }
 
-/* Activity badge/pill */
+/* Activity badge */
 .flyer-activity-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, rgba(255, 165, 0, 0.25) 0%, rgba(255, 120, 50, 0.2) 100%);
-    border: 1px solid rgba(255, 180, 100, 0.4);
-    border-radius: 20px;
-    padding: 6px 14px;
-    margin-bottom: 12px;
-    backdrop-filter: blur(4px);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--flyer-scale, 1));
+  background: linear-gradient(135deg, rgba(255, 165, 0, 0.25) 0%, rgba(255, 120, 50, 0.2) 100%);
+  border: 1px solid rgba(255, 180, 100, 0.4);
+  border-radius: calc(20px * var(--flyer-scale, 1));
+  padding: calc(6px * var(--flyer-scale, 1)) calc(14px * var(--flyer-scale, 1));
+  margin-bottom: calc(12px * var(--flyer-scale, 1));
+  backdrop-filter: blur(0px);
 }
 
 .flyer-activity-emoji {
-    font-size: 1rem;
+  font-size: calc(1rem * var(--flyer-scale, 1));
 }
 
 .flyer-activity-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #ffcc80;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(0.75rem * var(--flyer-scale, 1));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ffcc80;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .flyer-athlete-name {
-    font-size: 1.75rem;
-    font-style: italic;
-    font-weight: 800;
-    background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-    margin-bottom: 0;
-    line-height: 1.1;
-    white-space: nowrap;
+  font-size: calc(1.75rem * var(--flyer-scale, 1));
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  margin-bottom: 0;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .flyer-tagline {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #ffeedd;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    margin-bottom: 6px;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
+  font-size: calc(1.125rem * var(--flyer-scale, 1));
+  font-weight: 700;
+  color: #ffeedd;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: calc(6px * var(--flyer-scale, 1));
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .flyer-date-range {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-    margin-top: 4px;
+  font-size: calc(0.8rem * var(--flyer-scale, 1));
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  margin-top: calc(4px * var(--flyer-scale, 1));
 }
 
-/* Stats section - bottom aligned */
+/* Stats section */
 .flyer-stats-section {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(12px * var(--flyer-scale, 1));
 }
 
-/* Best Effort highlight styles */
+/* Best effort */
 .flyer-best-effort {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 12px;
-    padding: 12px 16px;
-    backdrop-filter: blur(4px);
-    width: 100%;
-    text-align: center;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: calc(12px * var(--flyer-scale, 1));
+  padding: calc(12px * var(--flyer-scale, 1)) calc(16px * var(--flyer-scale, 1));
+  backdrop-filter: blur(0px);
+  width: 100%;
+  text-align: center;
 }
 
 .flyer-best-effort-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6px * var(--flyer-scale, 1));
+  margin-bottom: calc(4px * var(--flyer-scale, 1));
 }
 
 .flyer-best-effort-icon {
-    font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--flyer-scale, 1));
 }
 
 .flyer-best-effort-label {
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #ffd700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(0.625rem * var(--flyer-scale, 1));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ffd700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .flyer-best-effort-name {
-    font-size: 0.75rem;
-    font-weight: 500;
-    opacity: 0.9;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+  font-size: calc(0.75rem * var(--flyer-scale, 1));
+  font-weight: 500;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .flyer-best-effort-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(1.25rem * var(--flyer-scale, 1));
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
-/* Stats badges - unified style */
+/* Badges */
 .flyer-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--flyer-scale, 1));
+  justify-content: center;
+  width: 100%;
 }
 
 .flyer-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 8px 12px;
-    backdrop-filter: blur(4px);
-    min-width: 70px;
-    flex: 1;
-    max-width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: calc(10px * var(--flyer-scale, 1));
+  padding: calc(8px * var(--flyer-scale, 1)) calc(12px * var(--flyer-scale, 1));
+  backdrop-filter: blur(0px);
+  min-width: calc(70px * var(--flyer-scale, 1));
+  flex: 1;
+  max-width: calc(100px * var(--flyer-scale, 1));
 }
 
 .flyer-badge-icon {
-    font-size: 0.875rem;
-    margin-bottom: 2px;
+  font-size: calc(0.875rem * var(--flyer-scale, 1));
+  margin-bottom: calc(2px * var(--flyer-scale, 1));
 }
 
 .flyer-badge-value {
-    font-size: 1.125rem;
-    font-weight: 700;
-    line-height: 1.1;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(1.125rem * var(--flyer-scale, 1));
+  font-weight: 700;
+  line-height: 1.1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .flyer-badge-label {
-    font-size: 0.45rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(0.45rem * var(--flyer-scale, 1));
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
-/* Footer styles */
+/* Footer */
 .flyer-footer {
-    padding-top: 12px;
-    text-align: center;
+  padding-top: calc(12px * var(--flyer-scale, 1));
+  text-align: center;
 }
 
 .flyer-brand {
-    font-size: 0.5rem;
-    opacity: 0.5;
-    letter-spacing: 0.1em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+  font-size: calc(0.5rem * var(--flyer-scale, 1));
+  opacity: 0.5;
+  letter-spacing: 0.1em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
-/* Responsive adjustments for actual export size */
-@media (min-width: 1080px) {
-    .flyer-preview-wrapper {
-        max-width: 540px;
-    }
+/* Responsive max-width utility */
+@media (min-width: 768px) {
+  .mw-md-400 {
+    max-width: 400px;
+  }
 }
 
-/* Animation for export button */
+/* Button disabled */
 .btn-success:disabled {
-    opacity: 0.8;
+  opacity: 0.8;
+}
+
+/* Export host:
+   Keep it NEAR viewport (Safari paints it more reliably than -10000px),
+   but move it off-canvas and invisible. */
+.flyer-export-host {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1080px;
+  height: 1920px;
+
+  transform: translateX(-120vw);
+  opacity: 0.001;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.flyer-export {
+  width: 1080px;
+  height: 1920px;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+
+  /* Bigger text in exported image */
+  --flyer-scale: 2.5;
 }
