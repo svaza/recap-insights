@@ -202,6 +202,44 @@ export default function RecapPage() {
         return parts.join(" • ") || secondsToHms(info.movingTimeSec);
     };
 
+    const totalDays = useMemo(() => {
+        if (!range) return null;
+        const start = new Date(range.startUtc);
+        const end = new Date(range.endUtc);
+        return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY));
+    }, [range]);
+
+    const getBreakdownShare = (
+        type: string,
+        info: { distanceM: number; movingTimeSec: number; elevationM: number }
+    ) => {
+        if (!total) return null;
+        const displayStats = getDisplayStatsForType(type, info);
+
+        const calc = (value: number, totalValue: number, basis: "distance" | "time" | "elevation") => {
+            if (totalValue <= 0 || value <= 0) return null;
+            const rawPct = (value / totalValue) * 100;
+            const widthPct = Math.min(100, Math.max(0, rawPct));
+            const label = rawPct > 0 && rawPct < 1 ? "<1%" : `${Math.round(rawPct)}%`;
+            return { widthPct, label, basis };
+        };
+
+        if (displayStats.includes("distance")) {
+            const share = calc(info.distanceM, total.distanceM, "distance");
+            if (share) return share;
+        }
+        if (displayStats.includes("time")) {
+            const share = calc(info.movingTimeSec, total.movingTimeSec, "time");
+            if (share) return share;
+        }
+        if (displayStats.includes("elevation")) {
+            const share = calc(info.elevationM, total.elevationM, "elevation");
+            if (share) return share;
+        }
+
+        return null;
+    };
+
     const wowItems: WowItem[] = useMemo(() => {
         if (!total || !range) return [];
 
@@ -632,44 +670,69 @@ export default function RecapPage() {
         >
             <div className="row justify-content-center">
                 <div className="col-12 col-lg-10 col-xl-9">
-                    <div className="card mb-4">
-                        <div className="card-body">
-                            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
-                                <div>
-                                    <div className="fw-bold fs-5">{headerTitle}</div>
-                                    <div className="text-body-secondary">{rangeLabel}</div>
-                                </div>
+                    
+                    {(loading || error || connected === false) && (
+                        <div className="card mb-4">
+                            <div className="card-body">
+                                {loading && <div className="text-info mt-3">Fetching activities… computing recap…</div>}
+                                {error && <div className="text-danger mt-3">Error: {error}</div>}
+
+                                {connected === false && (
+                                    <div className="mt-3">
+                                        <ConnectProviderPrompt
+                                            message="Connect a provider (read-only) to generate this recap."
+                                            onConnectStrava={() => connectProvider("strava")}
+                                            onConnectIntervalsIcu={() => connectProvider("intervalsicu")}
+                                            backButton={{
+                                                label: "Back",
+                                                onClick: () => navigate("/select"),
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
-
-                            {loading && <div className="text-info mt-3">Fetching activities… computing recap…</div>}
-                            {error && <div className="text-danger mt-3">Error: {error}</div>}
-
-                            {connected === false && (
-                                <div className="mt-3">
-                                    <ConnectProviderPrompt
-                                        message="Connect a provider (read-only) to generate this recap."
-                                        onConnectStrava={() => connectProvider("strava")}
-                                        onConnectIntervalsIcu={() => connectProvider("intervalsicu")}
-                                        backButton={{
-                                            label: "Back",
-                                            onClick: () => navigate("/select"),
-                                        }}
-                                    />
-                                </div>
-                            )}
                         </div>
-                    </div>
+                    )}
 
                     {total && (
                         <div className="card mb-4">
                             <div className="card-body">
                                 <div>
-                                    <div className="text-uppercase small text-secondary fw-semibold mb-2">Totals</div>
+                                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                        <div className="text-uppercase small text-secondary fw-semibold">
+                                            Totals · {headerTitle}
+                                        </div>
+                                        <div className="text-body-secondary small">{rangeLabel}</div>
+                                    </div>
                                     <div className="row g-3">
-                                        <div className="col-6 col-md-3"><Stat label="🎯 Activities" value={String(total.activities)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="📏 Distance" value={formatters.formatDistance(total.distanceM, 1)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="⏱️ Time" value={secondsToHms(total.movingTimeSec)} /></div>
-                                        <div className="col-6 col-md-3"><Stat label="⛰️ Elevation" value={formatters.formatElevation(total.elevationM)} /></div>
+                                        <div className="col-6 col-md-3">
+                                            <Stat
+                                                label="🎯 Activities"
+                                                value={String(total.activities)}
+                                                subLabel={totalDays ? `${num(total.activities / totalDays, 1)} avg/day` : undefined}
+                                            />
+                                        </div>
+                                        <div className="col-6 col-md-3">
+                                            <Stat
+                                                label="📏 Distance"
+                                                value={formatters.formatDistance(total.distanceM, 1)}
+                                                subLabel={totalDays ? `${formatters.formatDistance(total.distanceM / totalDays, 1)} avg/day` : undefined}
+                                            />
+                                        </div>
+                                        <div className="col-6 col-md-3">
+                                            <Stat
+                                                label="⏱️ Time"
+                                                value={secondsToHms(total.movingTimeSec)}
+                                                subLabel={totalDays ? `${secondsToHms(Math.round(total.movingTimeSec / totalDays))} avg/day` : undefined}
+                                            />
+                                        </div>
+                                        <div className="col-6 col-md-3">
+                                            <Stat
+                                                label="⛰️ Elevation"
+                                                value={formatters.formatElevation(total.elevationM)}
+                                                subLabel={totalDays ? `${formatters.formatElevation(total.elevationM / totalDays)} avg/day` : undefined}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -688,24 +751,40 @@ export default function RecapPage() {
                                     <div className="row g-0">
                                         {breakdown.map((item) => {
                                             const activityGroup = getActivityGroup(item.type);
-                                            const flyerUrl = `/flyer?${location.search.slice(1)}&activityGroup=${activityGroup}`;
+                                            const flyerParams = new URLSearchParams(location.search);
+                                            flyerParams.set("activityGroup", activityGroup);
+                                            const flyerUrl = `/flyer?${flyerParams.toString()}`;
+                                            const share = getBreakdownShare(item.type, item);
                                             return (
                                                 <div key={item.type} className="col-12 col-md-6">
                                                     <div className="border p-2 ps-3">
-                                                        <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
-                                                            <div className="d-flex align-items-center gap-2 min-w-0">
+                                                        <div className="d-flex align-items-center justify-content-between gap-2 mb-1 flex-wrap">
+                                                            <div className="d-flex align-items-center gap-2 min-w-0 breakdown-title-wrap">
                                                                 <span className="fs-4" aria-hidden="true">{getActivityEmoji(item.type)}</span>
-                                                                <div className="fw-semibold text-truncate">{getActivityDescription(item.type)}</div>
+                                                                <div className="fw-semibold text-truncate breakdown-title">{getActivityDescription(item.type)}</div>
                                                             </div>
                                                             <Link
                                                                 to={flyerUrl}
-                                                                className="btn btn-outline-secondary btn-sm flex-shrink-0"
+                                                                className="btn btn-outline-secondary btn-sm flex-shrink-0 breakdown-flyer-btn"
                                                                 title="Generate flyer for this activity"
                                                             >
                                                                 🖼️ Flyer
                                                             </Link>
                                                         </div>
                                                         <div className="text-body-secondary small">{formatBreakdownLine(item.type, item)}</div>
+                                                        {share && (
+                                                            <div className="breakdown-share text-body-secondary small mt-2">
+                                                                <div className="breakdown-share__track" aria-hidden="true">
+                                                                    <div
+                                                                        className="breakdown-share__fill"
+                                                                        style={{ width: `${share.widthPct}%` }}
+                                                                    />
+                                                                </div>
+                                                                <div className="breakdown-share__label">
+                                                                    {share.label} of total {share.basis}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -725,4 +804,3 @@ export default function RecapPage() {
         </PageShell>
     );
 }
-

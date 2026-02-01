@@ -61,7 +61,9 @@ export default function SelectPage() {
                             <p className="fs-5 fw-bold mb-1">⚡ Let's see what you've got</p>
                             <p className="text-secondary mb-4">
                                 Pick your time window and watch the magic happen. We'll pull your activity data from your connected provider and create your personalized recap.
-                                Currently supported providers: Strava and Intervals.icu.
+                                Currently supported providers:{" "}
+                                <span className="provider-name provider-name--strava">Strava</span> and{" "}
+                                <span className="provider-name provider-name--intervals">Intervals.icu</span>.
                             </p>
 
                             <div className="list-group">

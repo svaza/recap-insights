@@ -74,24 +74,59 @@
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.05);
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
-  animation: connect-tip-glow 1s ease-in-out infinite;
 }
 
-@keyframes connect-tip-glow {
-  0% {
-    box-shadow: 0 0 0 rgba(80, 200, 255, 0), 0 0 0 rgba(80, 200, 255, 0);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(80, 200, 255, 0.5), 0 0 24px rgba(80, 200, 255, 0.25);
-  }
-  100% {
-    box-shadow: 0 0 0 rgba(80, 200, 255, 0), 0 0 0 rgba(80, 200, 255, 0);
-  }
+.provider-name {
+  font-weight: 600;
+  padding: 0 0.25rem;
+  border-radius: 0.4rem;
+  white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .connect-provider-tip {
-    animation: none;
-  }
+.provider-name--strava {
+  color: #ff6a2f;
+  background: rgba(255, 106, 47, 0.12);
+}
+
+.provider-name--intervals {
+  color: #3bb8ff;
+  background: rgba(59, 184, 255, 0.12);
+}
+
+.breakdown-share {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breakdown-share__track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.breakdown-share__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+}
+
+.breakdown-share__label {
+  white-space: nowrap;
+}
+
+.breakdown-title {
+  font-size: 0.8125rem;
+}
+
+.breakdown-title-wrap {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.breakdown-flyer-btn {
+  white-space: nowrap;
+  margin-left: auto;
 }

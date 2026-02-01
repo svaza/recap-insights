@@ -30,7 +30,9 @@ export default function ConnectProviderPrompt({
         <div className="d-flex flex-column gap-3">
             <p className="text-secondary mb-0">{message}</p>
             <p className="text-body-secondary small mb-0 connect-provider-tip">
-                Tip: If you have an Intervals.icu account, connect that one — it avoids Strava rate limits.
+                Tip: If you have an{" "}
+                <span className="provider-name provider-name--intervals">Intervals.icu</span> account, connect that one — it avoids{" "}
+                <span className="provider-name provider-name--strava">Strava</span> rate limits.
             </p>
             <div className="d-flex gap-2 justify-content-center flex-wrap">
                 <StravaConnectButton onClick={onConnectStrava} />
