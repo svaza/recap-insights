@@ -28,6 +28,17 @@ public class RecapRequest
         // Handle calendar units
         var unitValue = unit ?? "month";
 
+        if (string.Equals(unitValue, "month", StringComparison.OrdinalIgnoreCase) && offset != null)
+        {
+            if (int.TryParse(offset, out var offsetInt) && offsetInt != 0)
+            {
+                var startOfTargetMonth = new DateTimeOffset(new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc))
+                    .AddMonths(offsetInt);
+                var endOfTargetMonth = startOfTargetMonth.AddMonths(1).AddSeconds(-1);
+                return (startOfTargetMonth, endOfTargetMonth);
+            }
+        }
+
         if (string.Equals(unitValue, "year", StringComparison.OrdinalIgnoreCase) && offset != null)
         {
             if (int.TryParse(offset, out var offsetInt))

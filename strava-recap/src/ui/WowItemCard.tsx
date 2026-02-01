@@ -3,6 +3,7 @@ export type WowItem = {
   emoji: string;
   title: string;
   value: string;
+  secondaryValue?: string;
   subtitle?: string;
 };
 

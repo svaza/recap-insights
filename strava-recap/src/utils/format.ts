@@ -13,6 +13,12 @@ export function formatRangeLabel(q: RecapQuery): string {
     }
 
     if (q.unit === "month") {
+        if (q.offset !== undefined && q.offset !== 0) {
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            start.setMonth(start.getMonth() + q.offset);
+            const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+            return `${fmt(start)} – ${fmt(end)}`;
+        }
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         return `${fmt(start)} – ${fmt(now)}`;
     }

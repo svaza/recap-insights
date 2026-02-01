@@ -34,9 +34,33 @@ type ActivityBreakdown = {
     elevationM: number;
 };
 
+type RecapDaySummary = {
+    date: string;
+    activities: number;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
+
+type RecapTimeOfDay = {
+    persona: string;
+    bucket: string;
+    activities: number;
+    totalActivities: number;
+    percent: number;
+};
+
 type RecapHighlights = {
     longestActivity?: ActivityItem;
     farthestActivity?: ActivityItem;
+    biggestClimbActivity?: ActivityItem;
+    fastestPaceActivity?: ActivityItem;
+    best5kActivity?: ActivityItem;
+    best10kActivity?: ActivityItem;
+    mostActiveDay?: RecapDaySummary;
+    timeOfDayPersona?: RecapTimeOfDay;
+    highestAvgHeartrateActivity?: ActivityItem;
+    highestMaxHeartrateActivity?: ActivityItem;
 };
 
 type RecapApiResponseFlat =

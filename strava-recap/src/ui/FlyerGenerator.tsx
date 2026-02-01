@@ -300,6 +300,19 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
 
   const canExport = !!backgroundDataUrl && previewBgReady && exportBgReady && !isExporting;
 
+  const heroStats = useMemo(() => {
+    const heroOrder = ["totalDistanceMeters", "totalMovingTimeSeconds"];
+    const byId = new Map(data.stats.map((stat) => [stat.id, stat]));
+    const ordered = heroOrder.map((id) => byId.get(id)).filter(Boolean) as typeof data.stats;
+    if (ordered.length > 0) return ordered;
+    return data.stats.slice(0, 1);
+  }, [data.stats]);
+
+  const supportStats = useMemo(() => {
+    const heroIds = new Set(["totalDistanceMeters", "totalMovingTimeSeconds"]);
+    return data.stats.filter((stat) => !heroIds.has(stat.id));
+  }, [data.stats]);
+
   const FlyerVisual = ({ onBgReady }: { onBgReady: () => void }) => (
     <div className="flyer-preview">
       {backgroundDataUrl && (
@@ -326,6 +339,16 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
         </div>
 
         <div className="flyer-stats-section">
+          <div className="flyer-hero">
+            {heroStats.map((stat) => (
+              <div key={stat.id} className="flyer-hero-card">
+                <div className="flyer-hero-icon">{stat.emoji}</div>
+                <div className="flyer-hero-value">{stat.formattedValue}</div>
+                <div className="flyer-hero-label">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
           {data.bestEffort && (
             <div className="flyer-best-effort">
               <div className="flyer-best-effort-badge">
@@ -341,29 +364,31 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
             </div>
           )}
 
-          <div className="flyer-badges">
-            {data.stats.map((stat) => (
-              <div key={stat.id} className="flyer-badge">
-                <span className="flyer-badge-icon">{stat.emoji}</span>
-                <span className="flyer-badge-value">{stat.formattedValue}</span>
-                <span className="flyer-badge-label">{stat.label}</span>
-              </div>
-            ))}
-          </div>
+          {supportStats.length > 0 && (
+            <div className="flyer-support">
+              {supportStats.map((stat) => (
+                <div key={stat.id} className="flyer-support-pill">
+                  <span className="flyer-support-emoji">{stat.emoji}</span>
+                  <span className="flyer-support-value">{stat.formattedValue}</span>
+                  <span className="flyer-support-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="flyer-badges">
+          <div className="flyer-consistency">
             {data.activeDaysCount > 0 && (
-              <div className="flyer-badge">
-                <span className="flyer-badge-icon">📆</span>
-                <span className="flyer-badge-value">{data.activeDaysCount}</span>
-                <span className="flyer-badge-label">Active Days</span>
+              <div className="flyer-support-pill">
+                <span className="flyer-support-emoji">📆</span>
+                <span className="flyer-support-value">{data.activeDaysCount}</span>
+                <span className="flyer-support-label">Active Days</span>
               </div>
             )}
             {data.longestStreak > 1 && (
-              <div className="flyer-badge">
-                <span className="flyer-badge-icon">🔥</span>
-                <span className="flyer-badge-value">{data.longestStreak}</span>
-                <span className="flyer-badge-label">Day Streak</span>
+              <div className="flyer-support-pill">
+                <span className="flyer-support-emoji">🔥</span>
+                <span className="flyer-support-value">{data.longestStreak}</span>
+                <span className="flyer-support-label">Day Streak</span>
               </div>
             )}
           </div>

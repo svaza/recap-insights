@@ -126,6 +126,79 @@ function getStatEmoji(key: AggregateKey): string {
     }
 }
 
+function formatPace(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
+    const totalSeconds = Math.round(seconds);
+    const minutes = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+function buildDerivedStats(
+    aggregates: FlyerAggregates,
+    useMetric: boolean,
+    group: ActivityGroup
+): FlyerStatItem[] {
+    const stats: FlyerStatItem[] = [];
+    const distanceM = aggregates.totalDistanceMeters;
+    const timeSec = aggregates.totalMovingTimeSeconds;
+    const elevationM = aggregates.totalElevationGainMeters;
+
+    if (distanceM > 0 && timeSec > 0) {
+        const paceGroups = new Set<ActivityGroup>([
+            'running',
+            'trail-running',
+            'walking',
+            'hiking',
+        ]);
+        const speedGroups = new Set<ActivityGroup>([
+            'cycling',
+            'mountainBikeRide',
+            'ski',
+        ]);
+
+        if (paceGroups.has(group)) {
+            const perUnit = useMetric
+                ? timeSec / Math.max(0.001, distanceM / 1000)
+                : timeSec / Math.max(0.001, distanceM / 1609.344);
+            stats.push({
+                id: 'pace',
+                label: 'Avg Pace',
+                formattedValue: `${formatPace(perUnit)} ${useMetric ? '/km' : '/mi'}`,
+                rawValue: perUnit,
+                emoji: '⚡',
+            });
+        } else if (speedGroups.has(group)) {
+            const hours = timeSec / 3600;
+            const speed = useMetric
+                ? (distanceM / 1000) / Math.max(0.01, hours)
+                : (distanceM / 1609.344) / Math.max(0.01, hours);
+            stats.push({
+                id: 'speed',
+                label: 'Avg Speed',
+                formattedValue: `${num(speed, 1)} ${useMetric ? 'km/h' : 'mph'}`,
+                rawValue: speed,
+                emoji: '🚀',
+            });
+        }
+
+        if (elevationM > 0 && distanceM >= 1000) {
+            const density = useMetric
+                ? elevationM / Math.max(0.001, distanceM / 1000)
+                : (elevationM * 3.28084) / Math.max(0.001, distanceM / 1609.344);
+            stats.push({
+                id: 'climbDensity',
+                label: 'Climb Density',
+                formattedValue: `${num(density, 0)} ${useMetric ? 'm/km' : 'ft/mi'}`,
+                rawValue: density,
+                emoji: '⛰️',
+            });
+        }
+    }
+
+    return stats;
+}
+
 /**
  * Selects contextual stats for flyer display based on activity group
  * Uses centralized config from activityStatsConfig.ts
@@ -174,7 +247,8 @@ export function selectFlyerStats(
         });
     }
 
-    return stats;
+    const derived = buildDerivedStats(aggregates, useMetric, group);
+    return stats.concat(derived);
 }
 
 /**

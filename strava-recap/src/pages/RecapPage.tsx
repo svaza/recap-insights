@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { toPng } from "html-to-image";
 
 import { parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel, num, secondsToHms } from "../utils/format";
@@ -14,7 +13,7 @@ import { useFetchRecap } from "../hooks/useFetchRecap";
 import PageShell from "../ui/PageShell";
 import type { NavItem, NavGroup, ProviderBadgeInfo } from "../ui/PageShell";
 import Stat from "../ui/Stat";
-import WowCarousel from "../ui/WowCarousel";
+import WowGrid from "../ui/WowGrid";
 import type { WowItem } from "../ui/WowItemCard";
 import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
 
@@ -34,6 +33,13 @@ const EMPIRE_STATE_ROOF_M = 381;
 const EVEREST_BASE_CAMP_SOUTH_M = 5364;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const PACE_MIN_DISTANCE_M = 3000;
+const PACE_MIN_TIME_SEC = 15 * 60;
+const CLIMB_MIN_DISTANCE_M = 5000;
+const CLIMB_MIN_ELEVATION_M = 200;
+const AVG_SESSION_MIN_ACTIVITIES = 2;
+const DOMINANT_SHARE_MIN_PCT = 40;
+const BUSIEST_WEEK_MIN_DAYS = 3;
 
 function metersToKm(m: number) {
     return m / 1000;
@@ -50,6 +56,7 @@ function metersToFeet(m: number) {
 function getHeaderTitle(q: ReturnType<typeof parseRecapQuery>) {
     if (!q) return "Your Recap Insights";
     if (q.type === "rolling") return `Last ${q.days} days`;
+    if (q.unit === "month" && q.offset === -1) return "Last month";
     if (q.unit === "month") return "This month";
     if (q.unit === "year" && q.offset === -1) return "Last year";
     return "This year";
@@ -84,12 +91,46 @@ function fmtX(x: number) {
     return `${Math.round(x)}×`;
 }
 
-function slugify(s: string) {
-    return (s || "recap")
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+function formatPace(secondsPerUnit: number) {
+    if (!isFinite(secondsPerUnit) || secondsPerUnit <= 0) return "0:00";
+    const totalSeconds = Math.round(secondsPerUnit);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatActivityPace(
+    activity: { distanceM: number; movingTimeSec: number },
+    units: UnitSystem
+) {
+    if (!activity || activity.distanceM <= 0 || activity.movingTimeSec <= 0) return null;
+    if (units === "km") {
+        const paceSecPerKm = activity.movingTimeSec / Math.max(0.001, metersToKm(activity.distanceM));
+        return `${formatPace(paceSecPerKm)} /km`;
+    }
+    const paceSecPerMi = activity.movingTimeSec / Math.max(0.001, metersToMiles(activity.distanceM));
+    return `${formatPace(paceSecPerMi)} /mi`;
+}
+
+function computeBestSevenDayWindow(activeDayKeys: string[]) {
+    if (activeDayKeys.length === 0) return 0;
+    const uniqueDays = Array.from(new Set(activeDayKeys));
+    const dates = uniqueDays
+        .map((k) => new Date(`${k}T00:00:00`).getTime())
+        .sort((a, b) => a - b);
+
+    let best = 1;
+    let left = 0;
+    const windowMs = 6 * MS_PER_DAY;
+
+    for (let right = 0; right < dates.length; right++) {
+        while (dates[right] - dates[left] > windowMs) {
+            left += 1;
+        }
+        best = Math.max(best, right - left + 1);
+    }
+
+    return best;
 }
 
 export default function RecapPage() {
@@ -110,11 +151,6 @@ export default function RecapPage() {
         localStorage.setItem("recap.units", units);
     }, [units]);
 
-    const shareRef = useRef<HTMLDivElement | null>(null);
-    const wowRef = useRef<HTMLDivElement | null>(null);
-    const [exporting, setExporting] = useState(false);
-    const [exportingWow, setExportingWow] = useState(false);
-
     useEffect(() => {
         if (!query) {
             navigate("/select", { replace: true });
@@ -124,44 +160,6 @@ export default function RecapPage() {
     const connectProvider = (providerType: string = "strava") => {
         const returnTo = location.pathname + location.search;
         window.location.href = `/api/provider/connect?provider=${providerType}&returnTo=${encodeURIComponent(returnTo)}`;
-    };
-
-    const downloadShareImage = async () => {
-        if (!shareRef.current || !query) return;
-        try {
-            setExporting(true);
-            const file = `recap-${slugify(formatRangeLabel(query))}-${units}.png`;
-            const dataUrl = await toPng(shareRef.current, {
-                cacheBust: true,
-                pixelRatio: 2,
-                backgroundColor: "#0b0f14",
-            });
-            const a = document.createElement("a");
-            a.href = dataUrl;
-            a.download = file;
-            a.click();
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    const downloadWowImage = async () => {
-        if (!wowRef.current || !query) return;
-        try {
-            setExportingWow(true);
-            const file = `recap-wow-${slugify(formatRangeLabel(query))}-${units}.png`;
-            const dataUrl = await toPng(wowRef.current, {
-                cacheBust: true,
-                pixelRatio: 2,
-                backgroundColor: "#0b0f14",
-            });
-            const a = document.createElement("a");
-            a.href = dataUrl;
-            a.download = file;
-            a.click();
-        } finally {
-            setExportingWow(false);
-        }
     };
 
     if (!query) return null;
@@ -212,6 +210,9 @@ export default function RecapPage() {
         const start = new Date(range.startUtc);
         const end = new Date(range.endUtc);
         const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY));
+        const elevationM = total.elevationM;
+        const distanceM = total.distanceM;
+        const movingTimeSec = total.movingTimeSec;
 
         // Active days
         if (activeDays.length > 0) {
@@ -237,6 +238,49 @@ export default function RecapPage() {
             });
         }
 
+        // Average pace or speed
+        if (distanceM >= PACE_MIN_DISTANCE_M && movingTimeSec >= PACE_MIN_TIME_SEC) {
+            const hours = movingTimeSec / 3600;
+            if (units === "km") {
+                const distanceKm = metersToKm(distanceM);
+                const speedKph = distanceKm / Math.max(0.01, hours);
+                const paceSecPerKm = movingTimeSec / Math.max(0.001, distanceKm);
+                items.push({
+                    id: "avg-pace",
+                    emoji: "⚡",
+                    title: "Average speed",
+                    value: `${num(speedKph, 1)} kph`,
+                    secondaryValue: `${formatPace(paceSecPerKm)} /km pace`,
+                    subtitle: `across ${formatters.formatDistance(distanceM, 1)}`,
+                });
+            } else {
+                const distanceMi = metersToMiles(distanceM);
+                const speedMph = distanceMi / Math.max(0.01, hours);
+                const paceSecPerMi = movingTimeSec / Math.max(0.001, distanceMi);
+                items.push({
+                    id: "avg-pace",
+                    emoji: "⚡",
+                    title: "Average speed",
+                    value: `${num(speedMph, 1)} mph`,
+                    secondaryValue: `${formatPace(paceSecPerMi)} /mi pace`,
+                    subtitle: `across ${formatters.formatDistance(distanceM, 1)}`,
+                });
+            }
+        }
+
+        // Average per activity
+        if (total.activities >= AVG_SESSION_MIN_ACTIVITIES && distanceM > 0) {
+            const avgDistanceM = distanceM / total.activities;
+            const avgTimeSec = movingTimeSec / Math.max(1, total.activities);
+            items.push({
+                id: "avg-session",
+                emoji: "📊",
+                title: "Avg session",
+                value: formatters.formatDistance(avgDistanceM, 1),
+                subtitle: `${secondsToHms(avgTimeSec)} avg time`,
+            });
+        }
+
         // Longest activity by duration
         if (highlights?.longestActivity && (highlights.longestActivity.movingTimeSec ?? 0) > 0) {
             items.push({
@@ -259,8 +303,184 @@ export default function RecapPage() {
             });
         }
 
-        const elevationM = total.elevationM;
-        const distanceM = total.distanceM;
+        // Biggest climb session
+        if (highlights?.biggestClimbActivity && (highlights.biggestClimbActivity.elevationM ?? 0) > 0) {
+            items.push({
+                id: "biggest-climb",
+                emoji: "⛰️",
+                title: "Biggest climb",
+                value: formatters.formatElevation(highlights.biggestClimbActivity.elevationM),
+                secondaryValue: secondsToHms(highlights.biggestClimbActivity.movingTimeSec),
+                subtitle: `${getActivityEmoji(highlights.biggestClimbActivity.type)} ${highlights.biggestClimbActivity.name}`,
+            });
+        }
+
+        // Fastest pace session
+        if (highlights?.fastestPaceActivity) {
+            const pace = formatActivityPace(highlights.fastestPaceActivity, units);
+            if (pace) {
+                items.push({
+                    id: "fastest-pace",
+                    emoji: "⚡",
+                    title: "Fastest pace",
+                    value: pace,
+                    secondaryValue: formatters.formatDistance(highlights.fastestPaceActivity.distanceM, 1),
+                    subtitle: `${getActivityEmoji(highlights.fastestPaceActivity.type)} ${highlights.fastestPaceActivity.name}`,
+                });
+            }
+        }
+
+        // Best 5k pace (session)
+        if (highlights?.best5kActivity) {
+            const pace = formatActivityPace(highlights.best5kActivity, units);
+            if (pace) {
+                items.push({
+                    id: "best-5k",
+                    emoji: "🏁",
+                    title: "Best 5k pace",
+                    value: pace,
+                    secondaryValue: formatters.formatDistance(highlights.best5kActivity.distanceM, 1),
+                    subtitle: `${getActivityEmoji(highlights.best5kActivity.type)} ${highlights.best5kActivity.name}`,
+                });
+            }
+        }
+
+        // Best 10k pace (session)
+        if (highlights?.best10kActivity) {
+            const pace = formatActivityPace(highlights.best10kActivity, units);
+            if (pace) {
+                items.push({
+                    id: "best-10k",
+                    emoji: "🏁",
+                    title: "Best 10k pace",
+                    value: pace,
+                    secondaryValue: formatters.formatDistance(highlights.best10kActivity.distanceM, 1),
+                    subtitle: `${getActivityEmoji(highlights.best10kActivity.type)} ${highlights.best10kActivity.name}`,
+                });
+            }
+        }
+
+        // Most active day
+        if (highlights?.mostActiveDay) {
+            const day = highlights.mostActiveDay;
+            const value = day.distanceM > 0
+                ? formatters.formatDistance(day.distanceM, 1)
+                : secondsToHms(day.movingTimeSec);
+            const secondary = day.distanceM > 0
+                ? secondsToHms(day.movingTimeSec)
+                : `${day.activities} activities`;
+            items.push({
+                id: "most-active-day",
+                emoji: "📅",
+                title: "Most active day",
+                value,
+                secondaryValue: secondary,
+                subtitle: `${day.date} · ${day.activities} activities`,
+            });
+        }
+
+        // Time of day persona
+        if (highlights?.timeOfDayPersona) {
+            const persona = highlights.timeOfDayPersona;
+            items.push({
+                id: "time-of-day",
+                emoji: "🕒",
+                title: "Time of day",
+                value: persona.persona,
+                secondaryValue: `${persona.percent}% of starts`,
+                subtitle: persona.bucket,
+            });
+        }
+
+        // Highest average heart rate
+        if (highlights?.highestAvgHeartrateActivity && (highlights.highestAvgHeartrateActivity.averageHeartrate ?? 0) > 0) {
+            const avgHr = Math.round(highlights.highestAvgHeartrateActivity.averageHeartrate ?? 0);
+            items.push({
+                id: "avg-hr",
+                emoji: "❤️",
+                title: "Avg HR record",
+                value: `${avgHr} bpm`,
+                subtitle: `${getActivityEmoji(highlights.highestAvgHeartrateActivity.type)} ${highlights.highestAvgHeartrateActivity.name}`,
+            });
+        }
+
+        // Highest max heart rate
+        if (highlights?.highestMaxHeartrateActivity && (highlights.highestMaxHeartrateActivity.maxHeartrate ?? 0) > 0) {
+            const maxHr = Math.round(highlights.highestMaxHeartrateActivity.maxHeartrate ?? 0);
+            items.push({
+                id: "max-hr",
+                emoji: "💥",
+                title: "Max HR record",
+                value: `${maxHr} bpm`,
+                subtitle: `${getActivityEmoji(highlights.highestMaxHeartrateActivity.type)} ${highlights.highestMaxHeartrateActivity.name}`,
+            });
+        }
+
+        // Climb density
+        if (distanceM >= CLIMB_MIN_DISTANCE_M && elevationM >= CLIMB_MIN_ELEVATION_M) {
+            if (units === "km") {
+                const perKm = elevationM / Math.max(0.001, metersToKm(distanceM));
+                items.push({
+                    id: "climb-density",
+                    emoji: "⛰️",
+                    title: "Climb density",
+                    value: `${Math.round(perKm)} m/km`,
+                    subtitle: `from ${formatters.formatElevation(elevationM)} gain`,
+                });
+            } else {
+                const perMi = metersToFeet(elevationM) / Math.max(0.001, metersToMiles(distanceM));
+                items.push({
+                    id: "climb-density",
+                    emoji: "⛰️",
+                    title: "Climb density",
+                    value: `${Math.round(perMi)} ft/mi`,
+                    subtitle: `from ${formatters.formatElevation(elevationM)} gain`,
+                });
+            }
+        }
+
+        // Dominant sport share
+        if (breakdown.length > 0 && distanceM > 0) {
+            const top = breakdown.reduce(
+                (best, item) => (item.distanceM > best.distanceM ? item : best),
+                breakdown[0]
+            );
+            if (top.distanceM > 0) {
+                const pct = Math.round((top.distanceM / distanceM) * 100);
+                if (pct >= DOMINANT_SHARE_MIN_PCT) {
+                    items.push({
+                        id: "dominant-sport",
+                        emoji: getActivityEmoji(top.type),
+                        title: "Dominant sport",
+                        value: `${pct}%`,
+                        subtitle: `${getActivityDescription(top.type)} distance`,
+                    });
+                }
+            }
+        }
+
+        // Variety score
+        if (breakdown.length >= 2) {
+            items.push({
+                id: "variety",
+                emoji: "🎛️",
+                title: "Variety",
+                value: `${breakdown.length} types`,
+                subtitle: `across ${total.activities} activities`,
+            });
+        }
+
+        // Busiest week
+        const bestWeek = computeBestSevenDayWindow(activeDays);
+        if (bestWeek >= BUSIEST_WEEK_MIN_DAYS) {
+            items.push({
+                id: "busiest-week",
+                emoji: "🗓️",
+                title: "Busiest week",
+                value: `${bestWeek}/7 days`,
+                subtitle: "best 7-day stretch",
+            });
+        }
 
         const eiffel = elevationM / EIFFEL_TOWER_M;
         if (eiffel > 1) {
@@ -375,7 +595,7 @@ export default function RecapPage() {
         }
 
         return items.slice(0, 12);
-    }, [total, range, activeDays, highlights, formatters]);
+    }, [total, range, activeDays, highlights, formatters, breakdown, units]);
 
     const navGroups: NavGroup[] = [
         {
@@ -394,18 +614,6 @@ export default function RecapPage() {
             label: "Change period",
             onClick: () => navigate("/select"),
         },
-        ...(connected === true
-            ? [
-                  {
-                      id: "download",
-                      emoji: "📸",
-                      label: exporting ? "Exporting…" : "Download",
-                      onClick: downloadShareImage,
-                      disabled: !total || exporting,
-                      variant: "info" as const,
-                  },
-              ]
-            : []),
     ];
 
     const providerBadge: ProviderBadgeInfo | undefined = connected !== null
@@ -453,7 +661,7 @@ export default function RecapPage() {
                     </div>
 
                     {total && (
-                        <div className="card mb-4" ref={shareRef}>
+                        <div className="card mb-4">
                             <div className="card-body">
                                 <div>
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Totals</div>
@@ -469,18 +677,8 @@ export default function RecapPage() {
                                     <div className="mt-4">
                                         <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
                                             <div className="text-uppercase small text-secondary fw-semibold">Wow highlights</div>
-                                            <button
-                                                type="button"
-                                                className="btn"
-                                                onClick={downloadWowImage}
-                                                disabled={exportingWow}
-                                                title="Download current wow carousel"
-                                            >
-                                                {exportingWow ? "…" : "⬇️"}
-                                            </button>
                                         </div>
-                                        <WowCarousel ref={wowRef} items={wowItems} />
-                                        <div className="text-body-secondary small mt-2">Tip: swipe to your favorite wow card, then download.</div>
+                                        <WowGrid items={wowItems} />
                                     </div>
                                 )}
 

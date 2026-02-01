@@ -120,7 +120,30 @@ export default function PageShell(props: {
 
             <footer className="py-3 text-center text-muted border-top">
                 <div className="container">
-                    Built with ❤️ in Zone 2
+                    Built with ❤️ in Zone 2 •{" "}
+                    <a
+                        href="https://github.com/svaza/recap-insights"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="link-secondary"
+                        aria-label="Open source on GitHub"
+                        title="Open source on GitHub"
+                    >
+                        <span className="d-inline-flex align-items-center gap-1">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                aria-hidden="true"
+                                focusable="false"
+                            >
+                                <path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.11 3.29 9.44 7.86 10.97.58.1.79-.25.79-.56 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.55-3.88-1.55-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.26.72-1.55-2.55-.3-5.24-1.28-5.24-5.7 0-1.26.45-2.3 1.2-3.11-.12-.3-.52-1.5.11-3.13 0 0 .98-.31 3.2 1.19.93-.26 1.93-.39 2.93-.39 1 0 2 .13 2.93.39 2.22-1.5 3.2-1.19 3.2-1.19.63 1.63.23 2.83.11 3.13.75.81 1.2 1.85 1.2 3.11 0 4.43-2.7 5.4-5.27 5.69.41.35.78 1.05.78 2.12 0 1.54-.01 2.78-.01 3.15 0 .31.21.67.8.56 4.57-1.53 7.85-5.86 7.85-10.97C23.5 5.74 18.27.5 12 .5z" />
+                            </svg>
+                            Open source
+                        </span>
+                    </a>
                 </div>
             </footer>
         </div>

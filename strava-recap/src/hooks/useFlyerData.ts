@@ -51,19 +51,27 @@ function computeTagline(query: RecapQuery | null, activityLabel: string): string
     if (!query) return `${activityLabel} Recap`;
 
     if (query.type === 'rolling') {
-        return `${query.days} Day ${activityLabel}`;
+        return `Last ${query.days} days ${activityLabel}`;
     }
 
     // Calendar-based
     if (query.unit === 'month') {
         const now = new Date();
-        const monthName = now.toLocaleString('en-US', { month: 'long' });
-        return `${monthName} ${activityLabel}`;
+        const target = new Date(now.getFullYear(), now.getMonth(), 1);
+        if (query.offset) {
+            target.setMonth(target.getMonth() + query.offset);
+        }
+        if (query.offset === -1) return `Last month ${activityLabel}`;
+        if (!query.offset) return `This month ${activityLabel}`;
+        const monthName = target.toLocaleString('en-US', { month: 'long' });
+        return `${monthName} ${target.getFullYear()} ${activityLabel}`;
     }
 
     if (query.unit === 'year') {
         const now = new Date();
         const targetYear = query.offset ? now.getFullYear() + query.offset : now.getFullYear();
+        if (query.offset === -1) return `Last year ${activityLabel}`;
+        if (!query.offset) return `This year ${activityLabel}`;
         return `${targetYear} ${activityLabel}`;
     }
 

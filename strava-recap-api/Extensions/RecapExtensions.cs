@@ -166,6 +166,9 @@ public static class RecapExtensions
     public static RecapHighlightsDto ToHighlights(this IEnumerable<ActivitySummary> activities)
     {
         var activityList = activities.ToList();
+        const double MinPaceDistanceM = 1000;
+        const double Min5kDistanceM = 5000;
+        const double Min10kDistanceM = 10000;
 
         var longestByDuration = activityList
             .OrderByDescending(a => a.MovingTime)
@@ -175,10 +178,120 @@ public static class RecapExtensions
             .OrderByDescending(a => a.Distance)
             .FirstOrDefault();
 
+        var biggestClimb = activityList
+            .Where(a => a.TotalElevationGain > 0)
+            .OrderByDescending(a => a.TotalElevationGain)
+            .FirstOrDefault();
+
+        var paceCandidates = activityList
+            .Where(a => a.Distance >= MinPaceDistanceM && a.MovingTime > 0)
+            .ToList();
+
+        var fastestByPace = paceCandidates
+            .OrderBy(a => a.MovingTime / a.Distance)
+            .FirstOrDefault();
+
+        var best5k = paceCandidates
+            .Where(a => a.Distance >= Min5kDistanceM)
+            .OrderBy(a => a.MovingTime / a.Distance)
+            .FirstOrDefault();
+
+        var best10k = paceCandidates
+            .Where(a => a.Distance >= Min10kDistanceM)
+            .OrderBy(a => a.MovingTime / a.Distance)
+            .FirstOrDefault();
+
+        var mostActiveDay = activityList
+            .GroupBy(a => a.StartDate.UtcDateTime.Date)
+            .Select(g => new
+            {
+                Date = g.Key,
+                Activities = g.Count(),
+                DistanceM = g.Sum(a => a.Distance),
+                MovingTimeSec = g.Sum(a => a.MovingTime),
+                ElevationM = g.Sum(a => a.TotalElevationGain)
+            })
+            .OrderByDescending(d => d.DistanceM)
+            .ThenByDescending(d => d.MovingTimeSec)
+            .FirstOrDefault();
+
+        RecapDaySummaryDto? mostActiveDayDto = mostActiveDay == null
+            ? null
+            : new RecapDaySummaryDto
+            {
+                Date = mostActiveDay.Date.ToString("yyyy-MM-dd"),
+                Activities = mostActiveDay.Activities,
+                DistanceM = mostActiveDay.DistanceM,
+                MovingTimeSec = mostActiveDay.MovingTimeSec,
+                ElevationM = mostActiveDay.ElevationM
+            };
+
+        RecapTimeOfDayDto? timeOfDayPersona = null;
+        if (activityList.Count > 0)
+        {
+            var buckets = new[]
+            {
+                new { Start = 0, End = 6, Persona = "Night owl", Label = "12am-6am" },
+                new { Start = 6, End = 12, Persona = "Early bird", Label = "6am-12pm" },
+                new { Start = 12, End = 18, Persona = "Midday mover", Label = "12pm-6pm" },
+                new { Start = 18, End = 24, Persona = "Evening regular", Label = "6pm-12am" }
+            };
+
+            var counts = new int[buckets.Length];
+            foreach (var activity in activityList)
+            {
+                var hour = activity.StartDate.UtcDateTime.Hour;
+                var idx = hour < 6 ? 0 : hour < 12 ? 1 : hour < 18 ? 2 : 3;
+                counts[idx] += 1;
+            }
+
+            var maxIdx = 0;
+            for (var i = 1; i < counts.Length; i++)
+            {
+                if (counts[i] > counts[maxIdx])
+                {
+                    maxIdx = i;
+                }
+            }
+
+            var totalActivities = activityList.Count;
+            var maxCount = counts[maxIdx];
+            var percent = totalActivities > 0
+                ? (int)Math.Round(100.0 * maxCount / totalActivities)
+                : 0;
+
+            timeOfDayPersona = new RecapTimeOfDayDto
+            {
+                Persona = buckets[maxIdx].Persona,
+                Bucket = buckets[maxIdx].Label,
+                Activities = maxCount,
+                TotalActivities = totalActivities,
+                Percent = percent
+            };
+        }
+
+        var highestAvgHr = activityList
+            .Where(a => a.AverageHeartrate.HasValue)
+            .OrderByDescending(a => a.AverageHeartrate)
+            .FirstOrDefault();
+
+        var highestMaxHr = activityList
+            .Where(a => a.MaxHeartrate.HasValue)
+            .OrderByDescending(a => a.MaxHeartrate)
+            .FirstOrDefault();
+
         return new RecapHighlightsDto
         {
             LongestActivity = longestByDuration?.ToDto(),
-            FarthestActivity = farthestByDistance?.ToDto()
+            FarthestActivity = farthestByDistance?.ToDto(),
+            BiggestClimbActivity = biggestClimb?.ToDto(),
+            FastestPaceActivity = fastestByPace?.ToDto(),
+            Best5kActivity = best5k?.ToDto(),
+            Best10kActivity = best10k?.ToDto(),
+            MostActiveDay = mostActiveDayDto,
+            TimeOfDayPersona = timeOfDayPersona,
+            HighestAvgHeartrateActivity = highestAvgHr?.ToDto(),
+            HighestMaxHeartrateActivity = highestMaxHr?.ToDto()
         };
     }
 }
