@@ -42,26 +42,6 @@ export default function FlyerPage() {
               }
             : undefined;
 
-    // Loading state
-    if (loading) {
-        return (
-            <PageShell title={pageTitle} providerBadge={providerBadge}>
-                <div className="row justify-content-center">
-                    <div className="col-12 col-md-8 col-lg-6">
-                        <div className="card">
-                            <div className="card-body text-center py-5">
-                                <div className="spinner-border text-primary mb-3" role="status">
-                                    <span className="visually-hidden">Loading...</span>
-                                </div>
-                                <p className="text-secondary mb-0">Preparing your flyer...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </PageShell>
-        );
-    }
-
     // Not connected state - show connect buttons
     if (error?.type === 'not-connected') {
         return (
@@ -90,7 +70,7 @@ export default function FlyerPage() {
     }
 
     // Error state
-    if (error || !data) {
+    if (!loading && (error || !data)) {
         return (
             <PageShell title={pageTitle} providerBadge={providerBadge}>
                 <div className="row justify-content-center">
@@ -124,19 +104,49 @@ export default function FlyerPage() {
                         </Link>
                     </div>
 
-                    {/* Flyer generator */}
-                    <div className="card">
-                        <div className="card-body">
-                            <FlyerGenerator data={data} />
+                    {/* Preview header */}
+                    <div className="flyer-preview-header mb-3">
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div className="text-uppercase small text-secondary fw-semibold">
+                                {groupInfo ? `${groupInfo.emoji} ${groupInfo.label} Flyer` : 'Activity Flyer'}
+                            </div>
+                            <div className="text-body-secondary small">
+                                {data?.rangeLabel ?? 'Preparing date range…'}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Tips */}
-                    <div className="mt-4 text-center">
-                        <p className="text-secondary small">
-                            💡 Tip: Use the alignment buttons to position stats where they look best with your background image.
-                        </p>
+                    {/* Flyer generator */}
+                    <div className="card">
+                        <div className="card-body">
+                            <div className="text-body-secondary small mb-3">
+                                Use the Save/Share or Download buttons to export your flyer.
+                            </div>
+                            {loading || !data ? (
+                                <div className="placeholder-glow">
+                                    <div className="d-flex justify-content-center mb-3">
+                                        <span className="placeholder col-3"></span>
+                                    </div>
+                                    <div className="ratio ratio-9x16 bg-body-tertiary rounded-3 overflow-hidden">
+                                        <div className="placeholder w-100 h-100"></div>
+                                    </div>
+                                    <div className="d-flex justify-content-center mt-3">
+                                        <span className="placeholder col-4"></span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <FlyerGenerator data={data} />
+                            )}
+                        </div>
                     </div>
+
+                    {/* Back navigation (bottom) */}
+                    <div className="mt-4">
+                        <Link to={backUrl} className="btn btn-outline-secondary btn-sm">
+                            ← Back to Recap
+                        </Link>
+                    </div>
+
                 </div>
             </div>
         </PageShell>

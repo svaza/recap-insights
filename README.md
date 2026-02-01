@@ -129,8 +129,7 @@ The project uses manual deployment to Azure Static Web Apps. Follow these steps:
 
 **1. Build the frontend**
 ```bash
-cd strava-recap;
-npm run build
+cd strava-recap;npm run build
 ```
 
 **2. Build the Azure Functions API**
@@ -141,7 +140,7 @@ dotnet publish ./strava-recap-api/strava-recap-api.csproj -c Release -o ./strava
 **3. Deploy to Azure SWA**
 ```bash
 cd ..
-swa deploy ./strava-recap/dist --api-location ./strava-recap-api/publish --deployment-token "b695758d1f64a675177ed2b26386245034e99f1aa54ca63a84006db4face714d04-a3975405-845c-4fbd-a2a6-a81df5adcde00102300014293310" --api-language "dotnetisolated" --api-version "8.0" --env production
+swa deploy ./strava-recap/dist --api-location ./strava-recap-api/publish --deployment-token "<Deployment Token>" --api-language "dotnetisolated" --api-version "8.0" --env production
 ```
 
 **Getting your deployment token:**
