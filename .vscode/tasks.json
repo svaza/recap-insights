@@ -4,7 +4,7 @@
         {
             "label": "dev:vite",
             "type": "shell",
-            "command": "npm run dev -- --port 5173",
+            "command": "npm run dev -- --port 5173 --host",
             "options": {
                 "cwd": "${workspaceFolder}/strava-recap"
             },
@@ -58,7 +58,7 @@
         {
             "label": "dev:swa",
             "type": "shell",
-            "command": "swa start http://localhost:5173 --api-devserver-url http://localhost:7071 --port 4280",
+            "command": "swa start http://localhost:5173 --api-devserver-url http://localhost:7071 --port 4280 --host 0.0.0.0",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

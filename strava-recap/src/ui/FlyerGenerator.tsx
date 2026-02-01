@@ -3,295 +3,445 @@
  * Renders the flyer visual with background, overlays, and stats
  */
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { toPng } from 'html-to-image';
-import type { FlyerData } from '../models/flyer';
-import './FlyerGenerator.css';
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { toBlob, toSvg } from "html-to-image";
+import type { FlyerData } from "../models/flyer";
+import "./FlyerGenerator.css";
 
 type FlyerGeneratorProps = {
-    data: FlyerData;
+  data: FlyerData;
 };
 
 /** Check if Web Share API supports file sharing */
 function canShareFiles(): boolean {
-    if (typeof navigator === "undefined" || !navigator.share || !navigator.canShare) {
-        return false;
-    }
-    try {
-        const testFile = new File(["test"], "test.png", { type: "image/png" });
-        return navigator.canShare({ files: [testFile] });
-    } catch {
-        return false;
-    }
+  if (typeof navigator === "undefined" || !navigator.share || !navigator.canShare) return false;
+  try {
+    const testFile = new File(["test"], "test.png", { type: "image/png" });
+    return navigator.canShare({ files: [testFile] });
+  } catch {
+    return false;
+  }
 }
 
-/** Convert data URL to Blob */
-function dataUrlToBlob(dataUrl: string): Blob {
-    const [header, base64] = dataUrl.split(",");
-    const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
-    const binary = atob(base64);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        array[i] = binary.charCodeAt(i);
-    }
-    return new Blob([array], { type: mime });
+function isIosSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  const isIOS = /iP(ad|hone|od)/.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/i.test(ua);
+  return isIOS && isSafari;
+}
+
+/** Convert image URL to base64 data URL for reliable export */
+async function toDataURL(url: string): Promise<string> {
+  if (!url) throw new Error("Missing background url");
+  if (url.startsWith("data:")) return url;
+
+  const response = await fetch(url, { cache: "force-cache" });
+  if (!response.ok) throw new Error(`Failed to fetch background: ${response.status}`);
+  const blob = await response.blob();
+
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function nextPaint(): Promise<void> {
+  await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  await new Promise<void>((r) => requestAnimationFrame(() => r()));
+}
+
+async function waitForImages(node: HTMLElement): Promise<void> {
+  const imgs = Array.from(node.querySelectorAll("img"));
+
+  // Wait for load
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        img.complete && img.naturalWidth > 0
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              const done = () => resolve();
+              img.addEventListener("load", done, { once: true });
+              img.addEventListener("error", done, { once: true });
+            })
+    )
+  );
+
+  // Decode (helps iOS)
+  await Promise.all(
+    imgs.map((img) => {
+      const anyImg = img as any;
+      if (typeof anyImg.decode === "function") {
+        return anyImg.decode().catch(() => {});
+      }
+      return Promise.resolve();
+    })
+  );
+}
+
+async function svgDataUrlToSvgText(svgDataUrl: string): Promise<string> {
+  const commaIdx = svgDataUrl.indexOf(",");
+  const encoded = commaIdx >= 0 ? svgDataUrl.slice(commaIdx + 1) : svgDataUrl;
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return encoded;
+  }
 }
 
 /**
- * Converts an image URL to a base64 data URL for reliable PNG export
+ * iOS Safari fallback:
+ * toSvg(node) -> Blob URL -> Image -> Canvas -> PNG Blob
  */
-async function toDataURL(url: string): Promise<string> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+async function toPngBlobViaSvgBlobUrl(
+  node: HTMLElement,
+  options: Parameters<typeof toSvg>[1],
+  width: number,
+  height: number
+): Promise<Blob> {
+  const svgDataUrl = await toSvg(node, options);
+  const svgText = await svgDataUrlToSvgText(svgDataUrl);
+
+  const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const svgBlobUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new Image();
+    img.src = svgBlobUrl;
+
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
     });
+
+    const anyImg = img as any;
+    if (typeof anyImg.decode === "function") {
+      await anyImg.decode().catch(() => {});
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context not available");
+
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas.toBlob failed"))), "image/png");
+    });
+
+    return pngBlob;
+  } finally {
+    URL.revokeObjectURL(svgBlobUrl);
+  }
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
-    const [isExporting, setIsExporting] = useState(false);
-    const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const flyerRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
 
-    // Detect file sharing support once on mount
-    const supportsShare = useMemo(() => canShareFiles(), []);
+  const [previewBgReady, setPreviewBgReady] = useState(false);
+  const [exportBgReady, setExportBgReady] = useState(false);
 
-    // Pre-load background image as data URL for reliable export
-    useEffect(() => {
-        let cancelled = false;
-        setImageLoaded(false);
-        toDataURL(data.groupInfo.backgroundPath)
-            .then((dataUrl) => {
-                if (!cancelled) {
-                    setBackgroundDataUrl(dataUrl);
-                }
-            })
-            .catch((err) => {
-                console.warn('Failed to pre-load background image:', err);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [data.groupInfo.backgroundPath]);
+  const exportRef = useRef<HTMLDivElement>(null);
 
-    const getFilename = () => `${data.athleteFirstName}-${data.groupInfo.label}-flyer.png`;
+  const supportsShare = useMemo(() => canShareFiles(), []);
+  const iosSafari = useMemo(() => isIosSafari(), []);
 
-    /** Generate flyer PNG as data URL */
-    const generateFlyerDataUrl = useCallback(async (): Promise<string> => {
-        if (!flyerRef.current) throw new Error("Flyer element not available");
-        
-        // Wait for the DOM to fully render with the image
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        return toPng(flyerRef.current, {
-            pixelRatio: 2,
-            cacheBust: true,
+  const isMobile = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const uaData = (navigator as any).userAgentData;
+    if (uaData?.mobile != null) return Boolean(uaData.mobile);
+    return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setBackgroundDataUrl(null);
+    setPreviewBgReady(false);
+    setExportBgReady(false);
+
+    toDataURL(data.groupInfo.backgroundPath)
+      .then((dataUrl) => {
+        if (!cancelled) setBackgroundDataUrl(dataUrl);
+      })
+      .catch((err) => console.warn("Failed to pre-load background image:", err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.groupInfo.backgroundPath]);
+
+  const getFilename = () => `${data.athleteFirstName}-${data.groupInfo.label}-flyer.png`;
+
+  const EXPORT_W = 1080;
+  const EXPORT_H = 1920;
+
+  const generateFlyerBlob = useCallback(async (): Promise<Blob> => {
+    if (!exportRef.current) throw new Error("Export element not available");
+
+    // Ensure fonts ready (prevents layout drift)
+    await (document as any).fonts?.ready?.catch?.(() => {});
+
+    // Ensure images loaded & decoded
+    await waitForImages(exportRef.current);
+
+    // iOS needs a bit more "settle"
+    if (iosSafari) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+
+    await nextPaint();
+
+    const node = exportRef.current;
+
+    const options = {
+      cacheBust: true,
+      pixelRatio: 1, // we already force 1080×1920, don’t overscale memory on mobile
+      width: EXPORT_W,
+      height: EXPORT_H,
+      canvasWidth: EXPORT_W,
+      canvasHeight: EXPORT_H,
+      style: {
+        width: `${EXPORT_W}px`,
+        height: `${EXPORT_H}px`,
+        transform: "none",
+      },
+      backgroundColor: "#1a1a2e",
+    } as const;
+
+    const doCapture = async () => {
+      if (iosSafari) return await toPngBlobViaSvgBlobUrl(node, options, EXPORT_W, EXPORT_H);
+      const b = await toBlob(node, options);
+      if (!b) throw new Error("toBlob returned null");
+      return b;
+    };
+
+    // Retry once on iOS Safari because first attempt often misses background
+    // (your observed behavior: second time works)
+    try {
+      const first = await doCapture();
+      // If it’s suspiciously tiny, retry. (Missing background often shrinks output.)
+      if (iosSafari && first.size < 40_000) {
+        await new Promise((r) => setTimeout(r, 200));
+        await nextPaint();
+        return await doCapture();
+      }
+      return first;
+    } catch {
+      if (iosSafari) {
+        await new Promise((r) => setTimeout(r, 250));
+        await nextPaint();
+        return await doCapture();
+      }
+      throw new Error("Capture failed");
+    }
+  }, [iosSafari]);
+
+  const handleDownload = useCallback(async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const blob = await generateFlyerBlob();
+      downloadBlob(blob, getFilename());
+    } catch (err) {
+      console.error("Failed to export flyer:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [generateFlyerBlob, isExporting]);
+
+  const handleShare = useCallback(async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const blob = await generateFlyerBlob();
+      const file = new File([blob], getFilename(), { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${data.athleteFirstName}'s ${data.groupInfo.label} Recap`,
         });
-    }, []);
+      } else {
+        downloadBlob(blob, getFilename());
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      console.warn("Share failed, falling back to download:", err);
+      try {
+        const blob = await generateFlyerBlob();
+        downloadBlob(blob, getFilename());
+      } catch (e) {
+        console.error("Fallback download failed:", e);
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  }, [data.athleteFirstName, data.groupInfo.label, generateFlyerBlob, isExporting]);
 
-    /** Download flyer as file (fallback) */
-    const handleDownload = useCallback(async () => {
-        if (isExporting) return;
-        setIsExporting(true);
-        try {
-            const dataUrl = await generateFlyerDataUrl();
-            const link = document.createElement('a');
-            link.download = getFilename();
-            link.href = dataUrl;
-            link.click();
-        } catch (error) {
-            console.error('Failed to export flyer:', error);
-        } finally {
-            setIsExporting(false);
-        }
-    }, [generateFlyerDataUrl, isExporting]);
+  const showShareButton = supportsShare;
+  const showDownloadButton = !isMobile || !supportsShare;
 
-    /** Share flyer via Web Share API (primary on mobile) */
-    const handleShare = useCallback(async () => {
-        if (isExporting) return;
-        setIsExporting(true);
-        try {
-            const dataUrl = await generateFlyerDataUrl();
-            const blob = dataUrlToBlob(dataUrl);
-            const file = new File([blob], getFilename(), { type: "image/png" });
+  const canExport = !!backgroundDataUrl && previewBgReady && exportBgReady && !isExporting;
 
-            if (navigator.canShare?.({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: `${data.athleteFirstName}'s ${data.groupInfo.label} Recap`,
-                });
-            } else {
-                await handleDownload();
-            }
-        } catch (err) {
-            // User cancelled share (AbortError) - do nothing
-            if (err instanceof Error && err.name === "AbortError") {
-                return;
-            }
-            console.warn("Share failed, falling back to download:", err);
-            await handleDownload();
-        } finally {
-            setIsExporting(false);
-        }
-    }, [data.athleteFirstName, data.groupInfo.label, generateFlyerDataUrl, handleDownload, isExporting]);
+  const FlyerVisual = ({ onBgReady }: { onBgReady: () => void }) => (
+    <div className="flyer-preview">
+      {backgroundDataUrl && (
+        <img
+          src={backgroundDataUrl}
+          alt=""
+          className="flyer-background-img"
+          onLoad={onBgReady}
+        />
+      )}
 
-    // Detect mobile device
-    const isMobile = useMemo(() => {
-        if (typeof navigator === "undefined") return false;
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }, []);
+      <div className="flyer-gradient-overlay"></div>
 
-    // Button display logic:
-    // Mobile: Show Share if supported (no Download), else Download only
-    // Desktop: Show Download always, also Share if supported
-    const showShareButton = supportsShare;
-    const showDownloadButton = !isMobile || !supportsShare;
+      <div className="flyer-content">
+        <div className="flyer-header">
+          <div className="flyer-activity-badge">
+            <span className="flyer-activity-emoji">{data.groupInfo.emoji}</span>
+            <span className="flyer-activity-label">{data.groupInfo.label}</span>
+          </div>
 
-    return (
-        <div className="flyer-container">
-            {/* Controls */}
-            <div className="flyer-controls mb-4">
-                <div className="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                    {/* Share button - shown if supported */}
-                    {showShareButton && (
-                        <button
-                            type="button"
-                            className="btn btn-success btn-sm"
-                            onClick={handleShare}
-                            disabled={isExporting || !backgroundDataUrl || !imageLoaded}
-                            style={{ whiteSpace: 'nowrap' }}
-                        >
-                            {isExporting ? (
-                                <>
-                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    Exporting...
-                                </>
-                            ) : !backgroundDataUrl || !imageLoaded ? (
-                                <>Loading...</>
-                            ) : (
-                                <>📤 Save / Share</>
-                            )}
-                        </button>
-                    )}
-                    {/* Download button - shown on desktop always, on mobile only if share not supported */}
-                    {showDownloadButton && (
-                        <button
-                            type="button"
-                            className={`btn btn-sm ${showShareButton ? 'btn-outline-secondary' : 'btn-success'}`}
-                            onClick={handleDownload}
-                            disabled={isExporting || !backgroundDataUrl || !imageLoaded}
-                            style={{ whiteSpace: 'nowrap' }}
-                        >
-                            {isExporting ? (
-                                <>
-                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    Exporting...
-                                </>
-                            ) : !backgroundDataUrl || !imageLoaded ? (
-                                <>Loading...</>
-                            ) : (
-                                <>📥 Download</>
-                            )}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Flyer Preview */}
-            <div className="flyer-preview-wrapper">
-                <div
-                    ref={flyerRef}
-                    className="flyer-preview"
-                >
-                    {/* Background image as <img> for reliable export - use data URL when available */}
-                    {backgroundDataUrl && (
-                        <img
-                            src={backgroundDataUrl}
-                            alt=""
-                            className="flyer-background-img"
-                            onLoad={() => setImageLoaded(true)}
-                            crossOrigin="anonymous"
-                        />
-                    )}
-
-                    {/* Gradient overlay for text readability */}
-                    <div className="flyer-gradient-overlay"></div>
-
-                    {/* Content overlay */}
-                    <div className="flyer-content">
-                        {/* Header - stays at top */}
-                        <div className="flyer-header">
-                            {/* Activity badge/pill */}
-                            <div className="flyer-activity-badge">
-                                <span className="flyer-activity-emoji">{data.groupInfo.emoji}</span>
-                                <span className="flyer-activity-label">{data.groupInfo.label}</span>
-                            </div>
-                            {/* Athlete name + tagline */}
-                            <div className="flyer-athlete-name">{data.athleteFirstName}'s</div>
-                            <div className="flyer-tagline">{data.tagline}</div>
-                            <div className="flyer-date-range">{data.rangeLabel}</div>
-                        </div>
-
-                        {/* Stats section - bottom aligned */}
-                        <div className="flyer-stats-section">
-                            {/* Best Effort highlight - at top of stats section */}
-                            {data.bestEffort && (
-                                <div className="flyer-best-effort">
-                                    <div className="flyer-best-effort-badge">
-                                        <span className="flyer-best-effort-icon">{data.bestEffort.type === 'longest' ? '🚀' : '🏆'}</span>
-                                        <span className="flyer-best-effort-label">{data.bestEffort.label}</span>
-                                    </div>
-                                    <div className="flyer-best-effort-name">{data.bestEffort.name}</div>
-                                    <div className="flyer-best-effort-value">{data.bestEffort.formattedDistance} · {data.bestEffort.formattedTime}</div>
-                                </div>
-                            )}
-
-                            {/* Stats as badges */}
-                            <div className="flyer-badges">
-                                {data.stats.map((stat) => (
-                                    <div key={stat.id} className="flyer-badge">
-                                        <span className="flyer-badge-icon">{stat.emoji}</span>
-                                        <span className="flyer-badge-value">{stat.formattedValue}</span>
-                                        <span className="flyer-badge-label">{stat.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Activity badges (Active Days & Streak) */}
-                            <div className="flyer-badges">
-                                {data.activeDaysCount > 0 && (
-                                    <div className="flyer-badge">
-                                        <span className="flyer-badge-icon">📆</span>
-                                        <span className="flyer-badge-value">{data.activeDaysCount}</span>
-                                        <span className="flyer-badge-label">Active Days</span>
-                                    </div>
-                                )}
-                                {data.longestStreak > 1 && (
-                                    <div className="flyer-badge">
-                                        <span className="flyer-badge-icon">🔥</span>
-                                        <span className="flyer-badge-value">{data.longestStreak}</span>
-                                        <span className="flyer-badge-label">Day Streak</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Footer branding */}
-                            <div className="flyer-footer">
-                                <span className="flyer-brand">generated using recapinsights.link</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Export info */}
-            <p className="text-secondary small text-center mt-3">
-                Preview shown at reduced size. Download exports at 1080×1920px.
-            </p>
+          <div className="flyer-athlete-name">{data.athleteFirstName}'s</div>
+          <div className="flyer-tagline">{data.tagline}</div>
+          <div className="flyer-date-range">{data.rangeLabel}</div>
         </div>
-    );
+
+        <div className="flyer-stats-section">
+          {data.bestEffort && (
+            <div className="flyer-best-effort">
+              <div className="flyer-best-effort-badge">
+                <span className="flyer-best-effort-icon">
+                  {data.bestEffort.type === "longest" ? "🚀" : "🏆"}
+                </span>
+                <span className="flyer-best-effort-label">{data.bestEffort.label}</span>
+              </div>
+              <div className="flyer-best-effort-name">{data.bestEffort.name}</div>
+              <div className="flyer-best-effort-value">
+                {data.bestEffort.formattedDistance} · {data.bestEffort.formattedTime}
+              </div>
+            </div>
+          )}
+
+          <div className="flyer-badges">
+            {data.stats.map((stat) => (
+              <div key={stat.id} className="flyer-badge">
+                <span className="flyer-badge-icon">{stat.emoji}</span>
+                <span className="flyer-badge-value">{stat.formattedValue}</span>
+                <span className="flyer-badge-label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flyer-badges">
+            {data.activeDaysCount > 0 && (
+              <div className="flyer-badge">
+                <span className="flyer-badge-icon">📆</span>
+                <span className="flyer-badge-value">{data.activeDaysCount}</span>
+                <span className="flyer-badge-label">Active Days</span>
+              </div>
+            )}
+            {data.longestStreak > 1 && (
+              <div className="flyer-badge">
+                <span className="flyer-badge-icon">🔥</span>
+                <span className="flyer-badge-value">{data.longestStreak}</span>
+                <span className="flyer-badge-label">Day Streak</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flyer-footer">
+            <span className="flyer-brand">generated using recapinsights.link</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flyer-container">
+      {/* Controls */}
+      <div className="flyer-controls mb-4">
+        <div className="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+          {showShareButton && (
+            <button
+              type="button"
+              className="btn btn-success btn-sm"
+              onClick={handleShare}
+              disabled={!canExport}
+              style={{ whiteSpace: "nowrap" }}
+            >
+              {isExporting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Exporting...
+                </>
+              ) : !backgroundDataUrl || !previewBgReady || !exportBgReady ? (
+                <>Loading...</>
+              ) : (
+                <>📤 Save / Share</>
+              )}
+            </button>
+          )}
+
+          {showDownloadButton && (
+            <button
+              type="button"
+              className={`btn btn-sm ${showShareButton ? "btn-outline-secondary" : "btn-success"}`}
+              onClick={handleDownload}
+              disabled={!canExport}
+              style={{ whiteSpace: "nowrap" }}
+            >
+              {isExporting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Exporting...
+                </>
+              ) : !backgroundDataUrl || !previewBgReady || !exportBgReady ? (
+                <>Loading...</>
+              ) : (
+                <>📥 Download</>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div className="flyer-preview-wrapper w-100 mw-md-400">
+        <div className="flyer-preview-host">
+          <FlyerVisual onBgReady={() => setPreviewBgReady(true)} />
+        </div>
+      </div>
+
+      {/* Export node at fixed 1080×1920 (keep near viewport; do NOT display:none) */}
+      <div className="flyer-export-host" aria-hidden="true">
+        <div ref={exportRef} className="flyer-export">
+          <FlyerVisual onBgReady={() => setExportBgReady(true)} />
+        </div>
+      </div>
+
+      <p className="text-secondary small text-center mt-3">
+        Preview shown at reduced size. Download exports at 1080×1920px.
+      </p>
+    </div>
+  );
 }
