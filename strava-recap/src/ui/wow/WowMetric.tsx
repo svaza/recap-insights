@@ -36,6 +36,11 @@ const THEMES: Record<string, { accent: string; glow: string; solid: string }> = 
         glow: "rgba(255,90,110,0.10)",
         solid: "rgba(255,90,110,0.95)",
     },
+    "longest-week": {
+        accent: "rgba(90,160,255,0.22)",
+        glow: "rgba(90,160,255,0.10)",
+        solid: "rgba(90,160,255,0.95)",
+    },
     "fastest-pace": {
         accent: "rgba(60,170,255,0.22)",
         glow: "rgba(60,170,255,0.10)",
@@ -111,6 +116,11 @@ const COPY: Record<
         line1: "That week was on fire.",
         line2: "Protect that momentum.",
         chips: ["📅 week", "🔥 surge", "✅ done"],
+    },
+    "longest-week": {
+        line1: "That was your biggest week.",
+        line2: "Stacking volume pays off.",
+        chips: ["📈 distance", "🧭 focus", "✅ done"],
     },
     "fastest-pace": {
         line1: "That pace is cooking.",

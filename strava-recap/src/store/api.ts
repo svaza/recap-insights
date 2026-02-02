@@ -42,6 +42,15 @@ type RecapDaySummary = {
     elevationM: number;
 };
 
+type RecapWeekSummary = {
+    startDate: string;
+    endDate: string;
+    activities: number;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
+
 type RecapTimeOfDay = {
     persona: string;
     bucket: string;
@@ -58,6 +67,7 @@ type RecapHighlights = {
     best5kActivity?: ActivityItem;
     best10kActivity?: ActivityItem;
     mostActiveDay?: RecapDaySummary;
+    longestWeeklyDistance?: RecapWeekSummary;
     timeOfDayPersona?: RecapTimeOfDay;
     highestAvgHeartrateActivity?: ActivityItem;
     highestMaxHeartrateActivity?: ActivityItem;

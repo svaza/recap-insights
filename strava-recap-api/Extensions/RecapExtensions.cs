@@ -226,6 +226,94 @@ public static class RecapExtensions
                 ElevationM = mostActiveDay.ElevationM
             };
 
+        RecapWeekSummaryDto? longestWeeklyDistance = null;
+        if (activityList.Count > 0)
+        {
+            var dayTotals = activityList
+                .GroupBy(a => a.StartDate.UtcDateTime.Date)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Activities = g.Count(),
+                        DistanceM = g.Sum(a => a.Distance),
+                        MovingTimeSec = g.Sum(a => a.MovingTime),
+                        ElevationM = g.Sum(a => a.TotalElevationGain)
+                    });
+
+            if (dayTotals.Count > 0)
+            {
+                var minDate = dayTotals.Keys.Min();
+                var maxDate = dayTotals.Keys.Max();
+
+                var dates = new List<DateTime>();
+                for (var d = minDate; d <= maxDate; d = d.AddDays(1))
+                {
+                    dates.Add(d);
+                }
+
+                var dailyTotals = dates
+                    .Select(d => dayTotals.TryGetValue(d, out var t)
+                        ? t
+                        : new { Activities = 0, DistanceM = 0.0, MovingTimeSec = 0, ElevationM = 0.0 })
+                    .ToList();
+
+                var windowLength = Math.Min(7, dailyTotals.Count);
+                var bestDistance = 0.0;
+                var bestStartIndex = 0;
+                var bestActivities = 0;
+                var bestMovingTimeSec = 0;
+                var bestElevationM = 0.0;
+
+                var sumDistance = 0.0;
+                var sumActivities = 0;
+                var sumMovingTimeSec = 0;
+                var sumElevationM = 0.0;
+
+                for (var i = 0; i < dailyTotals.Count; i++)
+                {
+                    var day = dailyTotals[i];
+                    sumDistance += day.DistanceM;
+                    sumActivities += day.Activities;
+                    sumMovingTimeSec += day.MovingTimeSec;
+                    sumElevationM += day.ElevationM;
+
+                    if (i >= windowLength)
+                    {
+                        var removeDay = dailyTotals[i - windowLength];
+                        sumDistance -= removeDay.DistanceM;
+                        sumActivities -= removeDay.Activities;
+                        sumMovingTimeSec -= removeDay.MovingTimeSec;
+                        sumElevationM -= removeDay.ElevationM;
+                    }
+
+                    if (i >= windowLength - 1 && sumDistance > bestDistance)
+                    {
+                        bestDistance = sumDistance;
+                        bestActivities = sumActivities;
+                        bestMovingTimeSec = sumMovingTimeSec;
+                        bestElevationM = sumElevationM;
+                        bestStartIndex = i - windowLength + 1;
+                    }
+                }
+
+                if (bestDistance > 0 && dates.Count > 0)
+                {
+                    var startDate = dates[bestStartIndex];
+                    var endDate = dates[Math.Min(dates.Count - 1, bestStartIndex + windowLength - 1)];
+                    longestWeeklyDistance = new RecapWeekSummaryDto
+                    {
+                        StartDate = startDate.ToString("yyyy-MM-dd"),
+                        EndDate = endDate.ToString("yyyy-MM-dd"),
+                        Activities = bestActivities,
+                        DistanceM = bestDistance,
+                        MovingTimeSec = bestMovingTimeSec,
+                        ElevationM = bestElevationM
+                    };
+                }
+            }
+        }
+
         RecapTimeOfDayDto? timeOfDayPersona = null;
         if (activityList.Count > 0)
         {
@@ -289,6 +377,7 @@ public static class RecapExtensions
             Best5kActivity = best5k?.ToDto(),
             Best10kActivity = best10k?.ToDto(),
             MostActiveDay = mostActiveDayDto,
+            LongestWeeklyDistance = longestWeeklyDistance,
             TimeOfDayPersona = timeOfDayPersona,
             HighestAvgHeartrateActivity = highestAvgHr?.ToDto(),
             HighestMaxHeartrateActivity = highestMaxHr?.ToDto()

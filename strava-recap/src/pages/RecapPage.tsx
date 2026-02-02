@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams, Link } from "react-router-dom";
 
 import { parseRecapQuery } from "../utils/recapQuery";
@@ -112,6 +112,25 @@ function formatActivityPace(
     return `${formatPace(paceSecPerMi)} /mi`;
 }
 
+function formatShortDateRange(start: string, end: string) {
+    const startDate = new Date(`${start}T00:00:00`);
+    const endDate = new Date(`${end}T00:00:00`);
+    if (!isFinite(startDate.getTime()) || !isFinite(endDate.getTime())) {
+        return `${start} – ${end}`;
+    }
+
+    const fmtShort = (d: Date) =>
+        d.toLocaleDateString(undefined, { month: "short", day: "2-digit" });
+    const fmtLong = (d: Date) =>
+        d.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
+
+    if (startDate.getFullYear() !== endDate.getFullYear()) {
+        return `${fmtLong(startDate)} – ${fmtLong(endDate)}`;
+    }
+
+    return `${fmtShort(startDate)} – ${fmtShort(endDate)}`;
+}
+
 function computeBestSevenDayWindow(activeDayKeys: string[]) {
     if (activeDayKeys.length === 0) return 0;
     const uniqueDays = Array.from(new Set(activeDayKeys));
@@ -146,6 +165,11 @@ export default function RecapPage() {
         const v = localStorage.getItem("recap.units");
         return v === "mi" ? "mi" : "km";
     });
+    const [showWow, setShowWow] = useState(true);
+    const [showBreakdownFab, setShowBreakdownFab] = useState(false);
+    const [showWowFab, setShowWowFab] = useState(false);
+    const breakdownRef = useRef<HTMLDivElement | null>(null);
+    const wowHeaderRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         localStorage.setItem("recap.units", units);
@@ -160,6 +184,9 @@ export default function RecapPage() {
     const connectProvider = (providerType: string = "strava") => {
         const returnTo = location.pathname + location.search;
         window.location.href = `/api/provider/connect?provider=${providerType}&returnTo=${encodeURIComponent(returnTo)}`;
+    };
+    const scrollToBreakdown = () => {
+        breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     if (!query) return null;
@@ -508,6 +535,19 @@ export default function RecapPage() {
             });
         }
 
+        // Longest weekly distance
+        if (highlights?.longestWeeklyDistance && (highlights.longestWeeklyDistance.distanceM ?? 0) > 0) {
+            const week = highlights.longestWeeklyDistance;
+            items.push({
+                id: "longest-week",
+                emoji: "📈",
+                title: "Longest week",
+                value: formatters.formatDistance(week.distanceM, 1),
+                secondaryValue: secondsToHms(week.movingTimeSec),
+                subtitle: `${formatShortDateRange(week.startDate, week.endDate)} · ${week.activities} activities`,
+            });
+        }
+
         // Busiest week
         const bestWeek = computeBestSevenDayWindow(activeDays);
         if (bestWeek >= BUSIEST_WEEK_MIN_DAYS) {
@@ -632,8 +672,54 @@ export default function RecapPage() {
             });
         }
 
-        return items.slice(0, 12);
+        return items;
     }, [total, range, activeDays, highlights, formatters, breakdown, units]);
+
+    useEffect(() => {
+        if (!total) {
+            setShowBreakdownFab(false);
+            setShowWowFab(false);
+            return;
+        }
+
+        const getViewportHeight = () =>
+            window.visualViewport?.height ?? window.innerHeight;
+
+        const updateVisibility = () => {
+            const viewportHeight = getViewportHeight();
+
+            const target = breakdownRef.current;
+            if (!target) {
+                setShowBreakdownFab(false);
+            } else {
+                const rect = target.getBoundingClientRect();
+                const shouldShow = rect.top > viewportHeight;
+                setShowBreakdownFab(shouldShow);
+            }
+
+            const wowHeader = wowHeaderRef.current;
+            if (wowItems.length === 0 || !wowHeader) {
+                setShowWowFab(false);
+            } else {
+                const rect = wowHeader.getBoundingClientRect();
+                const inView = rect.top < viewportHeight && rect.bottom > 0;
+                const shouldShow = !inView;
+                setShowWowFab(shouldShow);
+            }
+        };
+
+        updateVisibility();
+        window.addEventListener("scroll", updateVisibility, { passive: true });
+        window.addEventListener("resize", updateVisibility);
+        window.visualViewport?.addEventListener("resize", updateVisibility);
+        window.visualViewport?.addEventListener("scroll", updateVisibility);
+        return () => {
+            window.removeEventListener("scroll", updateVisibility);
+            window.removeEventListener("resize", updateVisibility);
+            window.visualViewport?.removeEventListener("resize", updateVisibility);
+            window.visualViewport?.removeEventListener("scroll", updateVisibility);
+        };
+    }, [total, showWow, wowItems.length]);
 
     const navGroups: NavGroup[] = [
         {
@@ -738,14 +824,25 @@ export default function RecapPage() {
 
                                 {wowItems.length > 0 && (
                                     <div className="mt-4">
-                                        <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                        <div
+                                            ref={wowHeaderRef}
+                                            className="d-flex justify-content-between align-items-center mb-2 gap-2"
+                                        >
                                             <div className="text-uppercase small text-secondary fw-semibold">Wow highlights</div>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-secondary"
+                                                onClick={() => setShowWow((prev) => !prev)}
+                                                aria-expanded={showWow}
+                                            >
+                                                {showWow ? "➖ Collapse" : "➕ Expand"}
+                                            </button>
                                         </div>
-                                        <WowGrid items={wowItems} />
+                                        {showWow && <WowGrid items={wowItems} />}
                                     </div>
                                 )}
 
-                                <div className="mt-4">
+                                <div className="mt-4" ref={breakdownRef}>
                                     <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
                                     <p className="text-body-secondary small mb-2">Contextual summary by activity type</p>
                                     <div className="row g-0">
@@ -801,6 +898,62 @@ export default function RecapPage() {
                     )}
                 </div>
             </div>
+
+            {total && (showBreakdownFab || showWowFab) && (
+                <>
+                    {showWowFab && (
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary recap-wow-fab recap-fab"
+                            onClick={() => setShowWow((prev) => !prev)}
+                            aria-label={showWow ? "Collapse wow highlights" : "Expand wow highlights"}
+                            title={showWow ? "Collapse wow highlights" : "Expand wow highlights"}
+                        >
+                            {showWow ? "➖ Collapse WOW" : "➕ Expand WOW"}
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary recap-breakdown-fab recap-fab"
+                        onClick={scrollToBreakdown}
+                        aria-label="Scroll to breakdown section"
+                        title="Jump to breakdown"
+                    >
+                        ⬇️ Breakdown
+                    </button>
+                    <style>
+                        {`
+                        .recap-fab {
+                            position: fixed;
+                            z-index: 1050;
+                            box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+                            opacity: 0.9;
+                        }
+                        .recap-fab:hover {
+                            opacity: 1;
+                        }
+                        .recap-breakdown-fab {
+                            right: calc(16px + env(safe-area-inset-right, 0px));
+                            bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+                        }
+                        .recap-wow-fab {
+                            left: calc(16px + env(safe-area-inset-left, 0px));
+                            bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+                        }
+                        @media (max-width: 575.98px) {
+                            .recap-breakdown-fab {
+                                right: calc(12px + env(safe-area-inset-right, 0px));
+                                bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+                            }
+                            .recap-wow-fab {
+                                left: calc(12px + env(safe-area-inset-left, 0px));
+                                bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+                            }
+                        }
+                        `}
+                    </style>
+                </>
+            )}
         </PageShell>
     );
 }

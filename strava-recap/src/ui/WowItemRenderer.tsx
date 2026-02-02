@@ -44,6 +44,7 @@ const WOW_COMPONENTS: Record<string, React.ComponentType<{ item: WowItem }>> = {
     "time-of-day": WowMetric,
     "avg-hr": WowMetric,
     "max-hr": WowMetric,
+    "longest-week": WowMetric,
 };
 
 export function WowItemRenderer(props: { item: WowItem }) {

@@ -12,6 +12,7 @@ public sealed class RecapHighlightsDto
     public ActivitySummaryDto? Best5kActivity { get; set; }
     public ActivitySummaryDto? Best10kActivity { get; set; }
     public RecapDaySummaryDto? MostActiveDay { get; set; }
+    public RecapWeekSummaryDto? LongestWeeklyDistance { get; set; }
     public RecapTimeOfDayDto? TimeOfDayPersona { get; set; }
     public ActivitySummaryDto? HighestAvgHeartrateActivity { get; set; }
     public ActivitySummaryDto? HighestMaxHeartrateActivity { get; set; }
