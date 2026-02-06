@@ -1,0 +1,293 @@
+/* ─── Select Page: Athletic Theme ─── */
+
+.select-page {
+    position: relative;
+}
+
+/* ─── Panel ─── */
+.select-panel {
+    background: var(--ath-surface);
+    border: 1px solid var(--ath-border) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Diagonal accent stripe at top of panel */
+.select-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+        90deg,
+        var(--ath-accent) 0%,
+        var(--ath-accent) 35%,
+        transparent 35%,
+        transparent 38%,
+        var(--ath-sage) 38%,
+        var(--ath-sage) 50%,
+        transparent 50%
+    );
+}
+
+/* ─── Kicker / Section Label ─── */
+.select-kicker {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ath-accent);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.select-kicker::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 2px;
+    background: var(--ath-accent);
+    flex-shrink: 0;
+}
+
+/* ─── Heading ─── */
+.select-page .h4 {
+    font-family: 'Bebas Neue', 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.04em;
+    color: var(--ath-text);
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+/* ─── Copy ─── */
+.select-copy {
+    max-width: 58ch;
+    color: var(--ath-text-muted);
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+/* ─── Period Options ─── */
+.select-option {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.4rem;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--ath-text);
+    transition: border-color 150ms ease, background-color 150ms ease, transform 100ms ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* Left accent stripe on hover */
+.select-option::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 150ms ease;
+}
+
+.select-option:hover {
+    border-color: var(--ath-border-strong);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.select-option:hover::before {
+    background: var(--ath-text-dim);
+}
+
+.select-option:focus-visible {
+    outline: 2px solid var(--ath-accent);
+    outline-offset: 2px;
+}
+
+.select-option:active {
+    transform: scale(0.99);
+}
+
+/* ─── Active State ─── */
+.select-option--active {
+    border-color: rgba(196, 112, 90, 0.3);
+    background: rgba(196, 112, 90, 0.06);
+}
+
+.select-option--active::before {
+    background: var(--ath-accent) !important;
+}
+
+.select-option--active .fw-semibold {
+    color: #fff;
+}
+
+/* ─── Option Internals ─── */
+.select-option__emoji {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.35rem;
+    border: 1px solid var(--ath-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.select-option--active .select-option__emoji {
+    border-color: rgba(196, 112, 90, 0.25);
+    background: rgba(196, 112, 90, 0.08);
+}
+
+.select-option__subtitle {
+    color: var(--ath-text-dim);
+    font-size: 0.78rem;
+}
+
+.select-option--active .select-option__subtitle {
+    color: var(--ath-text-muted);
+}
+
+.select-option__range {
+    color: var(--ath-text-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    border: 1px solid var(--ath-border);
+    padding: 0.2rem 0.55rem;
+    background: rgba(255, 255, 255, 0.03);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.select-option--active .select-option__range {
+    border-color: rgba(196, 112, 90, 0.2);
+    color: var(--ath-accent);
+    background: rgba(196, 112, 90, 0.06);
+}
+
+/* ─── Generate Button ─── */
+.select-page__generate-btn {
+    border: none;
+    color: #fff;
+    background: var(--ath-accent);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.7rem 1.5rem;
+    border-radius: 0.4rem;
+    transition: background 150ms ease, transform 100ms ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.select-page__generate-btn:hover {
+    color: #fff;
+    background: var(--ath-accent-hover);
+}
+
+.select-page__generate-btn:active {
+    transform: scale(0.98);
+}
+
+/* Reset button override */
+.select-page .btn-outline-secondary {
+    border-color: var(--ath-border-strong);
+    color: var(--ath-text-muted);
+    background: transparent;
+    font-weight: 500;
+    font-size: 0.85rem;
+    border-radius: 0.4rem;
+    letter-spacing: 0.02em;
+}
+
+.select-page .btn-outline-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Privacy Note ─── */
+.select-privacy-note {
+    color: var(--ath-text-dim) !important;
+    font-size: 0.78rem !important;
+}
+
+.select-privacy-note a {
+    color: var(--ath-text-muted);
+    border-bottom: 1px solid var(--ath-border-strong);
+    transition: color 150ms ease, border-color 150ms ease;
+}
+
+.select-privacy-note a:hover {
+    color: var(--ath-text);
+    border-color: var(--ath-text-muted);
+}
+
+/* ─── Mobile Responsive ─── */
+@media (max-width: 575.98px) {
+    .select-panel .card-body {
+        padding: 1.25rem !important;
+    }
+
+    .select-page .h4 {
+        font-size: 1.5rem;
+    }
+
+    .select-copy {
+        font-size: 0.82rem;
+    }
+
+    .select-option {
+        padding: 0.75rem !important;
+    }
+
+    .select-option__emoji {
+        width: 1.9rem;
+        height: 1.9rem;
+        font-size: 0.9rem;
+    }
+
+    .select-option__range {
+        font-size: 0.66rem;
+        padding: 0.15rem 0.4rem;
+    }
+
+    .select-page__generate-btn {
+        font-size: 0.82rem;
+        padding: 0.65rem 1rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    /* Stack options full width on tablet and below */
+    .select-page .row.g-2 > .col-12.col-lg-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+    .select-option,
+    .select-option::before,
+    .select-page__generate-btn,
+    .select-privacy-note a {
+        transition: none;
+    }
+}

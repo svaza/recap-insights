@@ -5,6 +5,11 @@ export type WowItem = {
   value: string;
   secondaryValue?: string;
   subtitle?: string;
+  activityType?: string;
+  line1?: string;
+  line2?: string;
+  chips?: string[];
+  footer?: string;
 };
 
 export default function WowItemCard(props: { item: WowItem }) {

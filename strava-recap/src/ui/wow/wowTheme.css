@@ -1,0 +1,48 @@
+.wow-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.wow-grid-item {
+    flex: 0 1 280px;
+    width: min(100%, 280px);
+    max-width: 280px;
+    min-width: 0;
+    display: flex;
+}
+
+.wow-grid-item > * {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wow-card-surface {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+}
+
+.wow-card-surface > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 100%;
+    box-sizing: border-box;
+    border-radius: 0.55rem;
+    border: 1px solid var(--ath-border, rgba(255, 255, 255, 0.1));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+    color: var(--ath-text, #e8e6e1);
+}
+
+@media (max-width: 575.98px) {
+    .wow-grid-item {
+        flex-basis: 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+}
+

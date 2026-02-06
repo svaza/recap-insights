@@ -13,11 +13,30 @@ import { useFetchRecap } from "../hooks/useFetchRecap";
 import PageShell from "../ui/PageShell";
 import type { NavItem, NavGroup, ProviderBadgeInfo } from "../ui/PageShell";
 import Stat from "../ui/Stat";
+import "./RecapPage.css";
 import WowGrid from "../ui/WowGrid";
 import type { WowItem } from "../ui/WowItemCard";
 import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
 
 type UnitSystem = "km" | "mi";
+type TrainingInsightTone = "up" | "steady" | "caution";
+
+type TrainingInsight = {
+    id: string;
+    emoji: string;
+    title: string;
+    value: string;
+    secondary: string;
+    summary: string;
+    hintLine1: string;
+    hintLine2: string;
+    tone: TrainingInsightTone;
+};
+
+type TrainingInsightsSection = {
+    summary: string;
+    cards: TrainingInsight[];
+};
 
 const EIFFEL_TOWER_M = 324;
 const FLOOR_M = 3;
@@ -40,6 +59,40 @@ const CLIMB_MIN_ELEVATION_M = 200;
 const AVG_SESSION_MIN_ACTIVITIES = 2;
 const DOMINANT_SHARE_MIN_PCT = 40;
 const BUSIEST_WEEK_MIN_DAYS = 3;
+const DEFAULT_TOP_WOW_COUNT = 3;
+
+// Base importance by wow type. Final ranking also includes data magnitude per card.
+const WOW_TYPE_WEIGHTS: Record<string, number> = {
+    "biggest-effort": 100,
+    "farthest": 98,
+    "biggest-climb": 96,
+    "fastest-pace": 95,
+    "best-10k": 94,
+    "best-5k": 94,
+    "longest-week": 92,
+    "streak": 90,
+    "active-days": 90,
+    "busiest-week": 88,
+    "avg-pace": 86,
+    "avg-session": 85,
+    "climb-density": 84,
+    "most-active-day": 83,
+    "variety": 80,
+    "dominant-sport": 79,
+    "time-of-day": 77,
+    "avg-hr": 76,
+    "max-hr": 76,
+    "marathons": 74,
+    "earth": 73,
+    "moon": 72,
+    "ebc": 71,
+    "burj": 70,
+    "empire": 69,
+    "eiffel": 68,
+    "floors": 67,
+    "laps": 66,
+    "fields": 65,
+};
 
 function metersToKm(m: number) {
     return m / 1000;
@@ -152,6 +205,95 @@ function computeBestSevenDayWindow(activeDayKeys: string[]) {
     return best;
 }
 
+function pct(value: number, total: number): number {
+    if (!isFinite(value) || !isFinite(total) || total <= 0) return 0;
+    return (value / total) * 100;
+}
+
+function parseDurationMinutes(text: string): number | null {
+    const normalized = text.toLowerCase();
+    const hours = Number(normalized.match(/(\d+(?:\.\d+)?)\s*h/)?.[1] ?? 0);
+    const minutes = Number(normalized.match(/(\d+(?:\.\d+)?)\s*m/)?.[1] ?? 0);
+    const seconds = Number(normalized.match(/(\d+(?:\.\d+)?)\s*s/)?.[1] ?? 0);
+    const totalMinutes = hours * 60 + minutes + seconds / 60;
+    return totalMinutes > 0 ? totalMinutes : null;
+}
+
+function parseDistanceKm(text: string): number | null {
+    const match = text.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(km|mi|m|ft)\b/);
+    if (!match) return null;
+
+    const value = Number(match[1]);
+    if (!isFinite(value) || value <= 0) return null;
+
+    const unit = match[2];
+    if (unit === "km") return value;
+    if (unit === "mi") return value * 1.609344;
+    if (unit === "m") return value / 1000;
+    if (unit === "ft") return value * 0.0003048;
+    return null;
+}
+
+function extractWowMagnitude(item: WowItem): number {
+    const source = [item.value, item.secondaryValue, item.subtitle]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+    const pct = source.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (pct) return Number(pct[1]);
+
+    const ratio = source.match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+    if (ratio) {
+        const a = Number(ratio[1]);
+        const b = Number(ratio[2]);
+        if (b > 0) return (a / b) * 100;
+    }
+
+    const multiplier = source.match(/(\d+(?:\.\d+)?)\s*[x×]/);
+    if (multiplier) return Number(multiplier[1]) * 100;
+
+    const pace = source.match(/(\d{1,2}):(\d{2})\s*\/\s*(km|mi)/);
+    if (pace) {
+        const paceMin = Number(pace[1]) + Number(pace[2]) / 60;
+        if (paceMin > 0) return 100 / paceMin;
+    }
+
+    const durationMin = parseDurationMinutes(source);
+    if (durationMin) return durationMin;
+
+    const distanceKm = parseDistanceKm(source);
+    if (distanceKm) return distanceKm;
+
+    const bpm = source.match(/(\d+(?:\.\d+)?)\s*bpm/);
+    if (bpm) return Number(bpm[1]);
+
+    const firstNumber = source.match(/(\d+(?:\.\d+)?)/);
+    return firstNumber ? Number(firstNumber[1]) : 0;
+}
+
+function getWowScore(item: WowItem): number {
+    const baseWeight = WOW_TYPE_WEIGHTS[item.id] ?? 60;
+    const magnitude = Math.max(0, extractWowMagnitude(item));
+    const magnitudeBonus = Math.log10(magnitude + 1) * 12;
+    return baseWeight + magnitudeBonus;
+}
+
+function rankWowItemsByScore(items: WowItem[]): WowItem[] {
+    return items
+        .map((item, originalIndex) => ({
+            item,
+            originalIndex,
+            score: getWowScore(item),
+        }))
+        .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+        .map((x) => x.item);
+}
+
+function selectTopWowItems(items: WowItem[], topCount = DEFAULT_TOP_WOW_COUNT): WowItem[] {
+    return rankWowItemsByScore(items).slice(0, topCount);
+}
+
 export default function RecapPage() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -165,7 +307,7 @@ export default function RecapPage() {
         const v = localStorage.getItem("recap.units");
         return v === "mi" ? "mi" : "km";
     });
-    const [showWow, setShowWow] = useState(true);
+    const [showAllWow, setShowAllWow] = useState(false);
     const [showBreakdownFab, setShowBreakdownFab] = useState(false);
     const [showWowFab, setShowWowFab] = useState(false);
     const breakdownRef = useRef<HTMLDivElement | null>(null);
@@ -187,6 +329,9 @@ export default function RecapPage() {
     };
     const scrollToBreakdown = () => {
         breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    const scrollToWow = () => {
+        wowHeaderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     if (!query) return null;
@@ -235,6 +380,197 @@ export default function RecapPage() {
         const end = new Date(range.endUtc);
         return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY));
     }, [range]);
+
+    const trainingInsights: TrainingInsightsSection | null = useMemo(() => {
+        if (!total) return null;
+
+        const dayCount = Math.max(1, totalDays ?? 1);
+        const activePct = pct(activeDays.length, dayCount);
+        const longestStreak = computeLongestStreak(activeDays);
+        const busiestWeek = computeBestSevenDayWindow(activeDays);
+        const consistencyScore = Math.min(
+            100,
+            Math.round(
+                activePct * 0.6 +
+                    Math.min(100, (longestStreak / 14) * 100) * 0.25 +
+                    Math.min(100, (busiestWeek / 7) * 100) * 0.15
+            )
+        );
+
+        let consistencyTone: TrainingInsightTone = "caution";
+        let consistencySummary = "Inconsistent training pattern this block.";
+        let consistencyHintLine1 = "Set a minimum-day routine to protect momentum.";
+        let consistencyHintLine2 = "Keep easy days truly easy so consistency can hold.";
+        if (consistencyScore >= 80) {
+            consistencyTone = "up";
+            consistencySummary = "Strong consistency across the block.";
+            consistencyHintLine1 = "Keep the rhythm repeatable instead of pushing every day.";
+            consistencyHintLine2 = "Protect recovery so this consistency can compound.";
+        } else if (consistencyScore >= 60) {
+            consistencyTone = "steady";
+            consistencySummary = "Good routine with some uneven patches.";
+            consistencyHintLine1 = "Add one extra easy day each week to raise consistency.";
+            consistencyHintLine2 = "Use short minimum sessions when schedule gets tight.";
+        }
+
+        const useDistanceBasis = total.distanceM > 0;
+        const weekLoadValue = highlights?.longestWeeklyDistance
+            ? (useDistanceBasis
+                  ? highlights.longestWeeklyDistance.distanceM
+                  : highlights.longestWeeklyDistance.movingTimeSec)
+            : 0;
+        const weekLoadTotal = useDistanceBasis ? total.distanceM : total.movingTimeSec;
+        const weekLoadShare = pct(weekLoadValue, weekLoadTotal);
+
+        const dayLoadValue = highlights?.mostActiveDay
+            ? (useDistanceBasis
+                  ? highlights.mostActiveDay.distanceM
+                  : highlights.mostActiveDay.movingTimeSec)
+            : 0;
+        const dayLoadTotal = useDistanceBasis ? total.distanceM : total.movingTimeSec;
+        const dayLoadShare = pct(dayLoadValue, dayLoadTotal);
+
+        let loadTone: TrainingInsightTone = "up";
+        let loadSummary = "Load distribution looks steady.";
+        let loadHintLine1 = "Keep spreading key sessions through the week.";
+        let loadHintLine2 = "Avoid stacking your two biggest sessions back-to-back.";
+        if (weekLoadShare > 55 || dayLoadShare > 30) {
+            loadTone = "caution";
+            loadSummary = "Load is concentrated into a few big spikes.";
+            loadHintLine1 = "Distribute hard sessions across more days to reduce spike risk.";
+            loadHintLine2 = "Add a low-stress day after every peak session.";
+        } else if (weekLoadShare > 45 || dayLoadShare > 22) {
+            loadTone = "steady";
+            loadSummary = "Moderate concentration in key days.";
+            loadHintLine1 = "Keep one lighter day after big sessions to absorb load.";
+            loadHintLine2 = "Use steady aerobic work between hard efforts.";
+        }
+
+        const topType = breakdown[0];
+        const typeCount = breakdown.length;
+        const topTimeShare = topType ? pct(topType.movingTimeSec, total.movingTimeSec) : 0;
+        let mixTone: TrainingInsightTone = "up";
+        let mixSummary = "Well-balanced training mix.";
+        let mixHintLine1 = "Keep one anchor sport and one support mode.";
+        let mixHintLine2 = "Rotate stress types so your overall load stays durable.";
+        if (typeCount <= 1 || topTimeShare >= 75) {
+            mixTone = "caution";
+            mixSummary = "Training is very concentrated in one modality.";
+            mixHintLine1 = "Add a low-stress support activity to improve durability.";
+            mixHintLine2 = "Keep it easy so it complements, not competes.";
+        } else if (topTimeShare >= 55) {
+            mixTone = "steady";
+            mixSummary = "Focused block with some variety support.";
+            mixHintLine1 = "Keep the main sport priority while rotating support work.";
+            mixHintLine2 = "Support sessions should feel easy, not like extra hard days.";
+        }
+
+        const avgHr = Math.round(highlights?.highestAvgHeartrateActivity?.averageHeartrate ?? 0);
+        const maxHr = Math.round(highlights?.highestMaxHeartrateActivity?.maxHeartrate ?? 0);
+        const hasPaceSignal = Boolean(
+            highlights?.fastestPaceActivity || highlights?.best5kActivity || highlights?.best10kActivity
+        );
+
+        let intensityLevel = 0;
+        if (maxHr >= 188 || avgHr >= 168) {
+            intensityLevel = 2;
+        } else if (maxHr >= 178 || avgHr >= 154) {
+            intensityLevel = 1;
+        }
+        if (hasPaceSignal && intensityLevel < 2) intensityLevel += 1;
+
+        const intensityLabel = intensityLevel === 2 ? "High" : intensityLevel === 1 ? "Moderate" : "Low";
+        const intensityTone: TrainingInsightTone =
+            intensityLevel === 2 ? "caution" : intensityLevel === 1 ? "steady" : "up";
+        const intensitySummary =
+            intensityLevel === 2
+                ? "Block included repeated high-intensity signals."
+                : intensityLevel === 1
+                    ? "Intensity is present but generally controlled."
+                    : "Mostly lower-intensity training signals.";
+        const intensityHintLine1 =
+            intensityLevel === 2
+                ? "Prioritize sleep and easy sessions after hard efforts."
+                : intensityLevel === 1
+                    ? "Keep intensity polarized: hard days hard, easy days easy."
+                    : "Add one controlled quality session each week if goals are performance-based.";
+        const intensityHintLine2 =
+            intensityLevel === 2
+                ? "Treat the next day as recovery, not another test."
+                : intensityLevel === 1
+                    ? "Keep one full recovery slot before the next intensity touch."
+                    : "Build gradually so quality work stays repeatable.";
+
+        const intensitySecondaryParts: string[] = [];
+        if (avgHr > 0) intensitySecondaryParts.push(`${avgHr} avg bpm`);
+        if (maxHr > 0) intensitySecondaryParts.push(`${maxHr} max bpm`);
+        if (hasPaceSignal) intensitySecondaryParts.push("pace efforts detected");
+
+        const cards: TrainingInsight[] = [
+            {
+                id: "consistency",
+                emoji: "📆",
+                title: "Consistency",
+                value: `${consistencyScore}/100`,
+                secondary: `${Math.round(activePct)}% active days • ${longestStreak}d streak • ${busiestWeek}/7 busiest`,
+                summary: consistencySummary,
+                hintLine1: consistencyHintLine1,
+                hintLine2: consistencyHintLine2,
+                tone: consistencyTone,
+            },
+            {
+                id: "load-balance",
+                emoji: "⚖️",
+                title: "Load balance",
+                value: `${Math.round(weekLoadShare)}%`,
+                secondary: `Top 7-day block • peak day ${Math.round(dayLoadShare)}%`,
+                summary: loadSummary,
+                hintLine1: loadHintLine1,
+                hintLine2: loadHintLine2,
+                tone: loadTone,
+            },
+            {
+                id: "mix",
+                emoji: "🎛️",
+                title: "Training mix",
+                value: `${Math.round(topTimeShare)}%`,
+                secondary: topType
+                    ? `${getActivityDescription(topType.type)} leads • ${typeCount} types`
+                    : "No activity type mix available",
+                summary: mixSummary,
+                hintLine1: mixHintLine1,
+                hintLine2: mixHintLine2,
+                tone: mixTone,
+            },
+            {
+                id: "intensity",
+                emoji: "❤️‍🔥",
+                title: "Intensity signal",
+                value: intensityLabel,
+                secondary: intensitySecondaryParts.join(" • ") || "No strong HR/pace intensity markers",
+                summary: intensitySummary,
+                hintLine1: intensityHintLine1,
+                hintLine2: intensityHintLine2,
+                tone: intensityTone,
+            },
+        ];
+
+        const cautionCount = cards.filter((c) => c.tone === "caution").length;
+        const upCount = cards.filter((c) => c.tone === "up").length;
+        const summary =
+            cautionCount >= 2
+                ? "Training trend: strong workload, but concentration and intensity need careful recovery management."
+                : cautionCount === 1
+                    ? "Training trend: mostly solid progression with one area to monitor closely."
+                    : upCount >= 3
+                        ? "Training trend: consistent, balanced, and sustainable progression signals."
+                        : "Training trend: steady block with clear forward momentum.";
+
+        return {
+            summary,
+            cards,
+        };
+    }, [total, totalDays, activeDays, highlights, breakdown]);
 
     const getBreakdownShare = (
         type: string,
@@ -353,6 +689,7 @@ export default function RecapPage() {
                 emoji: "🚀",
                 title: "Biggest effort",
                 value: secondsToHms(highlights.longestActivity.movingTimeSec),
+                activityType: highlights.longestActivity.type,
                 subtitle: `${getActivityEmoji(highlights.longestActivity.type)} ${highlights.longestActivity.name}`,
             });
         }
@@ -364,6 +701,7 @@ export default function RecapPage() {
                 emoji: "🏆",
                 title: "Farthest session",
                 value: formatters.formatDistance(highlights.farthestActivity.distanceM, 2),
+                activityType: highlights.farthestActivity.type,
                 subtitle: `${getActivityEmoji(highlights.farthestActivity.type)} ${highlights.farthestActivity.name}`,
             });
         }
@@ -376,6 +714,7 @@ export default function RecapPage() {
                 title: "Biggest climb",
                 value: formatters.formatElevation(highlights.biggestClimbActivity.elevationM),
                 secondaryValue: secondsToHms(highlights.biggestClimbActivity.movingTimeSec),
+                activityType: highlights.biggestClimbActivity.type,
                 subtitle: `${getActivityEmoji(highlights.biggestClimbActivity.type)} ${highlights.biggestClimbActivity.name}`,
             });
         }
@@ -390,6 +729,7 @@ export default function RecapPage() {
                     title: "Fastest pace",
                     value: pace,
                     secondaryValue: formatters.formatDistance(highlights.fastestPaceActivity.distanceM, 1),
+                    activityType: highlights.fastestPaceActivity.type,
                     subtitle: `${getActivityEmoji(highlights.fastestPaceActivity.type)} ${highlights.fastestPaceActivity.name}`,
                 });
             }
@@ -405,6 +745,7 @@ export default function RecapPage() {
                     title: "Best 5k pace",
                     value: pace,
                     secondaryValue: formatters.formatDistance(highlights.best5kActivity.distanceM, 1),
+                    activityType: highlights.best5kActivity.type,
                     subtitle: `${getActivityEmoji(highlights.best5kActivity.type)} ${highlights.best5kActivity.name}`,
                 });
             }
@@ -420,6 +761,7 @@ export default function RecapPage() {
                     title: "Best 10k pace",
                     value: pace,
                     secondaryValue: formatters.formatDistance(highlights.best10kActivity.distanceM, 1),
+                    activityType: highlights.best10kActivity.type,
                     subtitle: `${getActivityEmoji(highlights.best10kActivity.type)} ${highlights.best10kActivity.name}`,
                 });
             }
@@ -465,6 +807,7 @@ export default function RecapPage() {
                 emoji: "❤️",
                 title: "Avg HR record",
                 value: `${avgHr} bpm`,
+                activityType: highlights.highestAvgHeartrateActivity.type,
                 subtitle: `${getActivityEmoji(highlights.highestAvgHeartrateActivity.type)} ${highlights.highestAvgHeartrateActivity.name}`,
             });
         }
@@ -477,6 +820,7 @@ export default function RecapPage() {
                 emoji: "💥",
                 title: "Max HR record",
                 value: `${maxHr} bpm`,
+                activityType: highlights.highestMaxHeartrateActivity.type,
                 subtitle: `${getActivityEmoji(highlights.highestMaxHeartrateActivity.type)} ${highlights.highestMaxHeartrateActivity.name}`,
             });
         }
@@ -518,6 +862,7 @@ export default function RecapPage() {
                         emoji: getActivityEmoji(top.type),
                         title: "Dominant sport",
                         value: `${pct}%`,
+                        activityType: top.type,
                         subtitle: `${getActivityDescription(top.type)} distance`,
                     });
                 }
@@ -675,6 +1020,11 @@ export default function RecapPage() {
         return items;
     }, [total, range, activeDays, highlights, formatters, breakdown, units]);
 
+    const rankedWowItems = rankWowItemsByScore(wowItems);
+    const topWowItems = selectTopWowItems(wowItems, DEFAULT_TOP_WOW_COUNT);
+    const hasMoreWowItems = rankedWowItems.length > topWowItems.length;
+    const visibleWowItems = showAllWow && hasMoreWowItems ? rankedWowItems : topWowItems;
+
     useEffect(() => {
         if (!total) {
             setShowBreakdownFab(false);
@@ -719,7 +1069,7 @@ export default function RecapPage() {
             window.visualViewport?.removeEventListener("resize", updateVisibility);
             window.visualViewport?.removeEventListener("scroll", updateVisibility);
         };
-    }, [total, showWow, wowItems.length]);
+    }, [total, wowItems.length]);
 
     const navGroups: NavGroup[] = [
         {
@@ -758,10 +1108,9 @@ export default function RecapPage() {
                 <div className="col-12 col-lg-10 col-xl-9">
                     
                     {(loading || error || connected === false) && (
-                        <div className="card mb-4">
-                            <div className="card-body">
-                                {loading && <div className="text-info mt-3">Fetching activities… computing recap…</div>}
-                                {error && <div className="text-danger mt-3">Error: {error}</div>}
+                        <div className="recap-status-card mb-4">
+                                {loading && <div className="recap-loading-text mt-3">Fetching activities… computing recap…</div>}
+                                {error && <div className="recap-error-text mt-3">Error: {error}</div>}
 
                                 {connected === false && (
                                     <div className="mt-3">
@@ -776,19 +1125,18 @@ export default function RecapPage() {
                                         />
                                     </div>
                                 )}
-                            </div>
                         </div>
                     )}
 
                     {total && (
-                        <div className="card mb-4">
-                            <div className="card-body">
+                        <div className="recap-card mb-4">
+                            <div className="p-3 p-md-4">
                                 <div>
                                     <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                                        <div className="text-uppercase small text-secondary fw-semibold">
+                                        <div className="recap-section-label">
                                             Totals · {headerTitle}
                                         </div>
-                                        <div className="text-body-secondary small">{rangeLabel}</div>
+                                        <div className="recap-range-label">{rangeLabel}</div>
                                     </div>
                                     <div className="row g-3">
                                         <div className="col-6 col-md-3">
@@ -822,29 +1170,64 @@ export default function RecapPage() {
                                     </div>
                                 </div>
 
+                                {trainingInsights && (
+                                    <div className="mt-4">
+                                        <div className="recap-section-label mb-2">Training insights</div>
+                                        <div className="recap-training-trend">
+                                            <div className="recap-training-trend__label">Training trend</div>
+                                            <div className="recap-training-trend__value">{trainingInsights.summary}</div>
+                                        </div>
+                                        <div className="row g-2">
+                                            {trainingInsights.cards.map((insight) => (
+                                                <div key={insight.id} className="col-12 col-md-6">
+                                                    <article className={`recap-training-card recap-training-card--${insight.tone}`}>
+                                                        <div className="recap-training-card__head">
+                                                            <div className="recap-training-card__title-wrap">
+                                                                <span className="recap-training-card__emoji" aria-hidden="true">{insight.emoji}</span>
+                                                                <div className="recap-training-card__title">{insight.title}</div>
+                                                            </div>
+                                                            <div className="recap-training-card__value">{insight.value}</div>
+                                                        </div>
+                                                        <div className="recap-training-card__secondary">{insight.secondary}</div>
+                                                        <div className="recap-training-card__summary">{insight.summary}</div>
+                                                        <div className="recap-training-card__hint">
+                                                            <div className="recap-training-card__hint-line1">{insight.hintLine1}</div>
+                                                            <div className="recap-training-card__hint-line2">{insight.hintLine2}</div>
+                                                        </div>
+                                                    </article>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {wowItems.length > 0 && (
                                     <div className="mt-4">
                                         <div
                                             ref={wowHeaderRef}
-                                            className="d-flex justify-content-between align-items-center mb-2 gap-2"
+                                            className="recap-wow-header mb-2"
                                         >
-                                            <div className="text-uppercase small text-secondary fw-semibold">Wow highlights</div>
-                                            <button
-                                                type="button"
-                                                className="btn btn-sm btn-outline-secondary"
-                                                onClick={() => setShowWow((prev) => !prev)}
-                                                aria-expanded={showWow}
-                                            >
-                                                {showWow ? "➖ Collapse" : "➕ Expand"}
-                                            </button>
+                                            <div className="recap-section-label">Wow highlights</div>
+                                            <div className="recap-wow-actions">
+                                                {hasMoreWowItems && (
+                                                    <button
+                                                        type="button"
+                                                        className="recap-wow-toggle"
+                                                        onClick={() => setShowAllWow((prev) => !prev)}
+                                                        aria-expanded={showAllWow}
+                                                    >
+                                                        {showAllWow ? "Show less" : `Show all (${wowItems.length})`}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        {showWow && <WowGrid items={wowItems} />}
+                                        <WowGrid items={visibleWowItems} />
                                     </div>
                                 )}
 
                                 <div className="mt-4" ref={breakdownRef}>
-                                    <div className="text-uppercase small text-secondary fw-semibold mb-2">Breakdown</div>
-                                    <p className="text-body-secondary small mb-2">Contextual summary by activity type</p>
+                                    <div className="recap-section-label mb-2">Breakdown</div>
+                                    <p className="recap-breakdown-intro">Contextual summary by activity type</p>
                                     <div className="row g-0">
                                         {breakdown.map((item) => {
                                             const activityGroup = getActivityGroup(item.type);
@@ -854,15 +1237,15 @@ export default function RecapPage() {
                                             const share = getBreakdownShare(item.type, item);
                                             return (
                                                 <div key={item.type} className="col-12 col-md-6">
-                                                    <div className="border p-2 ps-3">
+                                                    <div className="recap-breakdown-item">
                                                         <div className="d-flex align-items-center justify-content-between gap-2 mb-1 flex-wrap">
                                                             <div className="d-flex align-items-center gap-2 min-w-0 breakdown-title-wrap">
                                                                 <span className="fs-4" aria-hidden="true">{getActivityEmoji(item.type)}</span>
-                                                                <div className="fw-semibold text-truncate breakdown-title">{getActivityDescription(item.type)}</div>
+                                                                <div className="breakdown-title text-truncate">{getActivityDescription(item.type)}</div>
                                                             </div>
                                                             <Link
                                                                 to={flyerUrl}
-                                                                className="btn btn-outline-secondary btn-sm flex-shrink-0 breakdown-flyer-btn"
+                                                                className="recap-breakdown-flyer-link flex-shrink-0"
                                                                 title="Generate flyer for this activity"
                                                             >
                                                                 🖼️ Flyer
@@ -888,7 +1271,7 @@ export default function RecapPage() {
                                         })}
                                         {breakdown.length === 0 && (
                                             <div className="col-12">
-                                                <div className="border p-3 text-body-secondary">No activities in this range.</div>
+                                                <div className="recap-breakdown-empty">No activities in this range.</div>
                                             </div>
                                         )}
                                     </div>
@@ -904,54 +1287,23 @@ export default function RecapPage() {
                     {showWowFab && (
                         <button
                             type="button"
-                            className="btn btn-sm btn-outline-secondary recap-wow-fab recap-fab"
-                            onClick={() => setShowWow((prev) => !prev)}
-                            aria-label={showWow ? "Collapse wow highlights" : "Expand wow highlights"}
-                            title={showWow ? "Collapse wow highlights" : "Expand wow highlights"}
+                            className="recap-wow-fab recap-fab"
+                            onClick={scrollToWow}
+                            aria-label="Scroll to wow highlights section"
+                            title="Jump to wow highlights"
                         >
-                            {showWow ? "➖ Collapse WOW" : "➕ Expand WOW"}
+                            ⬆️ WOW
                         </button>
                     )}
                     <button
                         type="button"
-                        className="btn btn-sm btn-outline-secondary recap-breakdown-fab recap-fab"
+                        className="recap-breakdown-fab recap-fab"
                         onClick={scrollToBreakdown}
                         aria-label="Scroll to breakdown section"
                         title="Jump to breakdown"
                     >
                         ⬇️ Breakdown
                     </button>
-                    <style>
-                        {`
-                        .recap-fab {
-                            position: fixed;
-                            z-index: 1050;
-                            box-shadow: 0 10px 24px rgba(0,0,0,0.25);
-                            opacity: 0.9;
-                        }
-                        .recap-fab:hover {
-                            opacity: 1;
-                        }
-                        .recap-breakdown-fab {
-                            right: calc(16px + env(safe-area-inset-right, 0px));
-                            bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-                        }
-                        .recap-wow-fab {
-                            left: calc(16px + env(safe-area-inset-left, 0px));
-                            bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-                        }
-                        @media (max-width: 575.98px) {
-                            .recap-breakdown-fab {
-                                right: calc(12px + env(safe-area-inset-right, 0px));
-                                bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-                            }
-                            .recap-wow-fab {
-                                left: calc(12px + env(safe-area-inset-left, 0px));
-                                bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-                            }
-                        }
-                        `}
-                    </style>
                 </>
             )}
         </PageShell>

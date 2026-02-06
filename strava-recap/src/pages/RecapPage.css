@@ -1,0 +1,452 @@
+/* ─── RecapPage: Athletic Theme ─── */
+
+/* ─── Section Headers ─── */
+.recap-section-label {
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    color: var(--ath-text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recap-section-label::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 2px;
+    background: var(--ath-accent);
+    flex-shrink: 0;
+}
+
+.recap-range-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--ath-text-dim);
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--ath-border);
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ─── Recap Card ─── */
+.recap-card {
+    background: var(--ath-surface);
+    border: 1px solid var(--ath-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+.recap-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        var(--ath-accent) 0%,
+        var(--ath-accent) 25%,
+        transparent 25%,
+        transparent 28%,
+        var(--ath-sage) 28%,
+        var(--ath-sage) 40%,
+        transparent 40%
+    );
+}
+
+/* ─── Stat Cards ─── */
+.recap-stat {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.4rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.015);
+    position: relative;
+    transition: border-color 150ms ease;
+}
+
+.recap-stat:hover {
+    border-color: var(--ath-border-strong);
+}
+
+.recap-stat__label {
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ath-text-muted);
+    margin-bottom: 0.4rem;
+}
+
+.recap-stat__value {
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ath-text);
+    line-height: 1.1;
+}
+
+.recap-stat__sub {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ath-text-dim);
+    margin-top: 0.35rem;
+    letter-spacing: 0.01em;
+}
+
+/* ─── Training Insights ─── */
+.recap-training-trend {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.4rem;
+    padding: 0.55rem 0.7rem;
+    background: rgba(255, 255, 255, 0.02);
+    margin-bottom: 0.75rem;
+}
+
+.recap-training-trend__label {
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+    color: var(--ath-text-muted);
+    line-height: 1;
+}
+
+.recap-training-trend__value {
+    margin-top: 0.25rem;
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ath-text-dim);
+    line-height: 1.2;
+}
+
+.recap-training-card {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.42rem;
+    padding: 0.8rem 0.9rem;
+    background: rgba(255, 255, 255, 0.02);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.recap-training-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--ath-border-strong);
+}
+
+.recap-training-card:hover {
+    border-color: var(--ath-border-strong);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.recap-training-card--up::before {
+    background: var(--ath-sage);
+}
+
+.recap-training-card--steady::before {
+    background: var(--ath-border-strong);
+}
+
+.recap-training-card--caution::before {
+    background: var(--ath-accent);
+}
+
+.recap-training-card__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.recap-training-card__title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.recap-training-card__emoji {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.recap-training-card__title {
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ath-text-muted);
+    line-height: 1.2;
+}
+
+.recap-training-card__value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--ath-text);
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.recap-training-card__secondary {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--ath-text-dim);
+    line-height: 1.35;
+}
+
+.recap-training-card__summary {
+    margin-top: 0.45rem;
+    font-size: 0.77rem;
+    color: var(--ath-text);
+    line-height: 1.35;
+}
+
+.recap-training-card__hint {
+    margin-top: 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--ath-text-muted);
+    opacity: 0.88;
+}
+
+.recap-training-card__hint-line2 {
+    margin-top: 3px;
+    opacity: 0.85;
+}
+
+/* ─── Wow Section ─── */
+.recap-wow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recap-wow-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.recap-wow-toggle {
+    border: 1px solid var(--ath-border-strong);
+    color: var(--ath-text-muted);
+    background: transparent;
+    border-radius: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.3rem 0.65rem;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+
+.recap-wow-toggle:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--ath-text);
+}
+
+/* WOW card theming is centralized in src/ui/wow/wowTheme.css */
+
+/* ─── Breakdown Section ─── */
+.recap-breakdown-intro {
+    font-size: 0.78rem;
+    color: var(--ath-text-dim);
+    margin-bottom: 0.75rem;
+}
+
+.recap-breakdown-item {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.4rem;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.015);
+    transition: border-color 150ms ease;
+    margin-bottom: -1px;
+}
+
+.recap-breakdown-item:hover {
+    border-color: var(--ath-border-strong);
+    z-index: 1;
+    position: relative;
+}
+
+.recap-breakdown-item .breakdown-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ath-text);
+}
+
+.recap-breakdown-item .text-body-secondary {
+    color: var(--ath-text-dim) !important;
+    font-size: 0.78rem;
+}
+
+.recap-breakdown-flyer-link {
+    border: 1px solid var(--ath-border-strong);
+    color: var(--ath-text-muted);
+    background: transparent;
+    border-radius: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.25rem 0.55rem;
+    text-decoration: none;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+
+.recap-breakdown-flyer-link:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--ath-text);
+}
+
+/* Empty state */
+.recap-breakdown-empty {
+    border: 1px dashed var(--ath-border-strong);
+    border-radius: 0.4rem;
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--ath-text-dim);
+    font-size: 0.82rem;
+}
+
+/* ─── Loading & Error States ─── */
+.recap-status-card {
+    background: var(--ath-surface);
+    border: 1px solid var(--ath-border);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.recap-loading-text {
+    color: var(--ath-text-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.recap-error-text {
+    color: #c4705a;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+/* ─── FAB Buttons ─── */
+.recap-fab {
+    position: fixed;
+    z-index: 1050;
+    border: 1px solid var(--ath-border-strong);
+    color: var(--ath-text-muted);
+    background: var(--ath-surface);
+    border-radius: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 0.8rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    opacity: 0.92;
+    transition: opacity 150ms ease, border-color 150ms ease;
+}
+
+.recap-fab:hover {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--ath-text);
+}
+
+.recap-breakdown-fab {
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.recap-wow-fab {
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 575.98px) {
+    .recap-stat__value {
+        font-size: 1.35rem;
+    }
+
+    .recap-stat {
+        padding: 0.75rem;
+    }
+
+    .recap-training-card {
+        padding: 0.72rem 0.78rem;
+    }
+
+    .recap-training-card__value {
+        font-size: 1rem;
+    }
+
+    .recap-training-trend__value {
+        font-size: 0.8rem;
+    }
+
+    .recap-wow-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .recap-wow-header .recap-section-label {
+        flex: 0 0 100%;
+    }
+
+    .recap-wow-actions {
+        flex-basis: 100%;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .recap-breakdown-fab {
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .recap-wow-fab {
+        left: calc(12px + env(safe-area-inset-left, 0px));
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+    .recap-stat,
+    .recap-training-card,
+    .recap-breakdown-item,
+    .recap-fab,
+    .recap-wow-toggle,
+    .recap-breakdown-flyer-link {
+        transition: none;
+    }
+}
+
+/* ─── Suppress recapSpin globally (no spinning glow needed) ─── */
+@keyframes recapSpin {
+    from { transform: none; }
+    to { transform: none; }
+}

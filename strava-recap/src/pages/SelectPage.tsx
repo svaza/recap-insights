@@ -7,6 +7,7 @@ import { possessive } from "../utils/helper";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import PageShell from "../ui/PageShell";
 import type { ProviderBadgeInfo } from "../ui/PageShell";
+import "./SelectPage.css";
 
 type PeriodOption = {
     id: string;
@@ -24,7 +25,6 @@ const PERIOD_OPTIONS: PeriodOption[] = [
     { id: "thisYear", emoji: "⏳", label: "This year", subtitle: "Your annual achievement", query: { type: "calendar", unit: "year" } },
     { id: "lastYear", emoji: "🏆", label: "Last year", subtitle: "Previous calendar year", query: { type: "calendar", unit: "year", offset: -1 } },
 ];
-
 
 export default function SelectPage() {
     const navigate = useNavigate();
@@ -44,78 +44,79 @@ export default function SelectPage() {
 
     const providerBadge: ProviderBadgeInfo | undefined = connected !== null
         ? {
-              connected,
-              provider: providerDisplayName,
-          }
+            connected,
+            provider: providerDisplayName,
+        }
         : undefined;
 
     return (
-        <PageShell 
+        <PageShell
             title={pageTitle}
             providerBadge={providerBadge}
         >
-            <div className="row justify-content-center">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body">
-                            <p className="fs-5 fw-bold mb-1">⚡ Let's see what you've got</p>
-                            <p className="text-secondary mb-4">
-                                Pick your time window and watch the magic happen. We'll pull your activity data from your connected provider and create your personalized recap.
-                                Currently supported providers:{" "}
-                                <span className="provider-name provider-name--strava">Strava</span> and{" "}
-                                <span className="provider-name provider-name--intervals">Intervals.icu</span>.
-                            </p>
-
-                            <div className="list-group">
-                                {PERIOD_OPTIONS.map((opt) => {
-                                    const active = opt.id === selectedId;
-                                    return (
-                                        <button
-                                            key={opt.id}
-                                            type="button"
-                                            onClick={() => setSelectedId(opt.id)}
-                                            className={`list-group-item list-group-item-action ${active ? "active" : "bg-body-tertiary text-light"
-                                                }`}
-                                        >
-                                            <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
-                                                <div className="d-flex align-items-center gap-3 flex-fill min-w-0">
-                                                    <span className="fs-3" aria-hidden="true">
-                                                        {opt.emoji}
-                                                    </span>
-                                                    <div className="flex-fill min-w-0">
-                                                        <div className="fw-semibold mb-1 text-truncate">{opt.label}</div>
-                                                        <small className="text-body-secondary text-truncate d-block">{opt.subtitle}</small>
-                                                    </div>
-                                                </div>
-                                                <div className="text-opacity-75 fw-semibold fs-6 text-start text-sm-end w-100 w-sm-auto">
-                                                    {formatRangeLabel(opt.query)}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="d-flex flex-column flex-sm-row gap-3 mt-4">
-                                <button type="button" className="btn btn-primary flex-fill" onClick={go}>
-                                    🚀 Generate recap
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-light flex-fill"
-                                    onClick={() => setSelectedId(PERIOD_OPTIONS[0].id)}
-                                >
-                                    Reset
-                                </button>
-                            </div>
-
-                            <div className="mt-4 pt-3 border-top border-secondary">
-                                <p className="text-secondary small mb-0">
-                                    We use read-only activity access to generate your recap, store recap summaries locally in your browser (not on our servers), and don't process/store GPS routes.
-                                    For more details, see the full <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>.
+            <div className="select-page">
+                <div className="row justify-content-center">
+                    <div className="col-12 col-xxl-10">
+                        <section className="card select-panel border-0">
+                            <div className="card-body p-4 p-lg-5">
+                                <p className="select-kicker mb-2">Training Window</p>
+                                <h3 className="h4 mb-2">Choose your recap period</h3>
+                                <p className="text-secondary mb-4 select-copy">
+                                    Select the training block you want to review. We pull activity totals and highlights
+                                    from your connected provider and generate a concise recap you can keep or share.
+                                    Supported:{" "}
+                                    <span className="provider-name provider-name--strava">Strava</span> &amp;{" "}
+                                    <span className="provider-name provider-name--intervals">Intervals.icu</span>.
                                 </p>
+
+                                <div className="row g-2">
+                                    {PERIOD_OPTIONS.map((opt) => {
+                                        const active = opt.id === selectedId;
+                                        return (
+                                            <div key={opt.id} className="col-12 col-lg-6">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedId(opt.id)}
+                                                    aria-pressed={active}
+                                                    className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
+                                                >
+                                                    <div className="d-flex align-items-center justify-content-between gap-3">
+                                                        <div className="d-flex align-items-center gap-3 min-w-0">
+                                                            <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
+                                                            <div className="min-w-0">
+                                                                <div className="fw-semibold text-truncate">{opt.label}</div>
+                                                                <small className="d-block text-truncate select-option__subtitle">{opt.subtitle}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div className="select-option__range">{formatRangeLabel(opt.query)}</div>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="d-grid d-sm-flex gap-2 mt-4">
+                                    <button type="button" className="btn select-page__generate-btn flex-sm-fill" onClick={go}>
+                                        Generate Recap
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary flex-sm-fill"
+                                        onClick={() => setSelectedId(PERIOD_OPTIONS[0].id)}
+                                    >
+                                        Reset selection
+                                    </button>
+                                </div>
+
+                                <div className="mt-4 pt-3 border-top border-secondary-subtle">
+                                    <p className="text-secondary small mb-0 select-privacy-note">
+                                        We use read-only activity access, store recap summaries only in your browser, and do not process or store GPS routes.
+                                        For details, read the full <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>

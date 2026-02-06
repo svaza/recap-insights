@@ -1,0 +1,136 @@
+/* ─── WowUnifiedCard: Athletic Theme ─── */
+
+.wow-u {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ─── Emoji badge ─── */
+.wow-u__emoji {
+    margin: 0 auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--ath-border, rgba(255, 255, 255, 0.08));
+    flex-shrink: 0;
+}
+
+/* ─── Title ─── */
+.wow-u__title {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ath-text-muted, #9a9590);
+    line-height: 1;
+}
+
+/* ─── Hero value ─── */
+.wow-u__value {
+    font-size: clamp(1.5rem, 6.5vw, 1.85rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: var(--ath-text, #e8e6e1);
+}
+
+/* ─── Secondary value (smaller metric under hero) ─── */
+.wow-u__secondary {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ath-text-dim, #7a7570);
+    line-height: 1.2;
+}
+
+/* ─── Subtitle / activity line ─── */
+.wow-u__subtitle {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ath-text-dim, #7a7570);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+}
+
+/* ─── Motivational quote ─── */
+.wow-u__quote {
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--ath-text-muted, #b3bab5);
+    opacity: 0.88;
+}
+
+.wow-u__quote-line2 {
+    margin-top: 3px;
+    opacity: 0.85;
+}
+
+/* ─── Chips row ─── */
+.wow-u__chips {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.wow-u__chip {
+    padding: 3px 8px;
+    border-radius: 0.25rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--ath-border, rgba(255, 255, 255, 0.08));
+    color: var(--ath-text-dim, #7a7570);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+/* ─── Footer hint ─── */
+.wow-u__footer {
+    font-size: 0.65rem;
+    color: var(--ath-text-dim, #7a7570);
+    opacity: 0.55;
+    line-height: 1.3;
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 575.98px) {
+    .wow-u {
+        padding: 16px 12px;
+        gap: 10px;
+    }
+
+    .wow-u__emoji {
+        width: 46px;
+        height: 46px;
+        font-size: 22px;
+        border-radius: 12px;
+    }
+
+    .wow-u__value {
+        font-size: clamp(1.3rem, 6vw, 1.6rem);
+    }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+    .wow-u,
+    .wow-u * {
+        transition: none;
+        animation: none;
+    }
+}

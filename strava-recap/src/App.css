@@ -1,98 +1,257 @@
+/* ─── Athletic Theme: Root ─── */
 #root {
   width: 100%;
+  min-height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ─── Page Shell ─── */
+.page-shell {
+  --ath-bg: #1a1d23;
+  --ath-surface: #22262e;
+  --ath-surface-raised: #2a2f38;
+  --ath-accent: #c4705a;
+  --ath-accent-hover: #d4806a;
+  --ath-sage: #7a8c6e;
+  --ath-text: #e8e6e1;
+  --ath-text-muted: #9a9590;
+  --ath-text-dim: #706b66;
+  --ath-border: rgba(255, 255, 255, 0.07);
+  --ath-border-strong: rgba(255, 255, 255, 0.12);
+
+  background: var(--ath-bg);
+  color: var(--ath-text);
+  position: relative;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Subtle diagonal athletic stripe texture */
+.page-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 60px,
+    rgba(255, 255, 255, 0.012) 60px,
+    rgba(255, 255, 255, 0.012) 61px
+  );
+  z-index: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* ─── Navbar ─── */
+.page-shell__nav {
+  background-color: rgba(22, 25, 30, 0.92);
+  border-color: var(--ath-border) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 10;
 }
 
-.read-the-docs {
-  color: #888;
+.page-shell__brand {
+  letter-spacing: 0.02em;
+  font-weight: 700;
+  color: var(--ath-text);
+  font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Navbar styles */
+.page-shell__brand span {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.page-shell__toggler:focus-visible {
+  outline: 2px solid var(--ath-accent);
+  outline-offset: 2px;
+}
+
+.page-shell__nav .btn {
+  border-radius: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.page-shell__nav .btn-outline-secondary,
+.page-shell__nav .btn-outline-light,
+.page-shell__nav .btn-outline-info {
+  color: var(--ath-text-muted);
+  border-color: var(--ath-border-strong);
+  background: transparent;
+}
+
+.page-shell__nav .btn-outline-secondary:hover,
+.page-shell__nav .btn-outline-light:hover,
+.page-shell__nav .btn-outline-info:hover {
+  color: var(--ath-text);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.page-shell__nav .btn-primary,
+.page-shell__nav .btn-success,
+.page-shell__nav .btn-warning {
+  color: var(--ath-text);
+  border-color: rgba(196, 112, 90, 0.4);
+  background: rgba(196, 112, 90, 0.18);
+}
+
+.page-shell__nav .btn-primary:hover,
+.page-shell__nav .btn-success:hover,
+.page-shell__nav .btn-warning:hover {
+  color: #fff;
+  border-color: rgba(196, 112, 90, 0.6);
+  background: rgba(196, 112, 90, 0.28);
+}
+
+/* ─── Main Content ─── */
+.page-shell__main {
+  position: relative;
+  z-index: 1;
+}
+
+.page-shell__header {
+  border-bottom: 2px solid var(--ath-border);
+  padding-bottom: 0.75rem;
+  position: relative;
+}
+
+/* Small accent bar under header */
+.page-shell__header::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 48px;
+  height: 2px;
+  background: var(--ath-accent);
+}
+
+.page-shell__title {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ath-text-muted);
+  font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.page-shell__main .card {
+  background: var(--ath-surface);
+  border: 1px solid var(--ath-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  border-radius: 0.5rem;
+}
+
+/* ─── Footer ─── */
+.page-shell__footer {
+  border-color: var(--ath-border) !important;
+  background: rgba(18, 20, 24, 0.7);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ath-text-dim);
+}
+
+.page-shell__footer-link {
+  color: var(--ath-text-muted);
+  transition: color 150ms ease;
+}
+
+.page-shell__footer-link:hover {
+  color: var(--ath-text);
+}
+
+/* ─── Navbar Logo ─── */
 .navbar-logo {
-  width: 28px;
-  height: 28px;
-  max-width: 28px;
-  max-height: 28px;
+  width: 26px;
+  height: 26px;
+  max-width: 26px;
+  max-height: 26px;
   object-fit: contain;
   display: block;
   vertical-align: middle;
 }
 
+/* ─── Provider Badge ─── */
+.provider-badge {
+  border: 1px solid var(--ath-border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.35rem;
+}
+
+.provider-badge__text {
+  color: var(--ath-text-muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 .status-dot--connected {
-  background-color: #22c55e;
+  background-color: var(--ath-sage);
 }
 
 .status-dot--disconnected {
-  background-color: #f59e0b;
+  background-color: #a48b77;
 }
 
-/* Disconnect badge styles */
-.disconnect-badge {
-  cursor: pointer;
+.provider-disconnect-btn {
+  border: 1px solid var(--ath-border-strong);
+  color: var(--ath-text-muted);
+  background: transparent;
+  border-radius: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.provider-disconnect-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--ath-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.provider-disconnect-btn:disabled {
+  opacity: 0.6;
 }
 
 .disconnect-badge--loading {
   cursor: wait;
-  opacity: 0.7;
 }
 
 .connect-provider-tip {
   display: inline-block;
   padding: 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.4rem;
+  border: 1px solid var(--ath-border-strong);
+  background: rgba(255, 255, 255, 0.03);
 }
 
+/* ─── Provider Names ─── */
 .provider-name {
-  font-weight: 600;
-  padding: 0 0.25rem;
-  border-radius: 0.4rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
   white-space: nowrap;
+  font-size: 0.85em;
+  letter-spacing: 0.01em;
 }
 
 .provider-name--strava {
-  color: #ff6a2f;
-  background: rgba(255, 106, 47, 0.12);
+  color: #c09b7e;
+  background: rgba(192, 155, 126, 0.12);
 }
 
 .provider-name--intervals {
-  color: #3bb8ff;
-  background: rgba(59, 184, 255, 0.12);
+  color: #8aa8be;
+  background: rgba(138, 168, 190, 0.1);
 }
 
+/* ─── Breakdown Share ─── */
 .breakdown-share {
   display: flex;
   align-items: center;
@@ -101,16 +260,16 @@
 
 .breakdown-share__track {
   flex: 1;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 
 .breakdown-share__fill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+  border-radius: 2px;
+  background: var(--ath-accent);
 }
 
 .breakdown-share__label {
@@ -132,8 +291,8 @@
 }
 
 .flyer-preview-header {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.75rem;
+  border: 1px solid var(--ath-border-strong);
+  border-radius: 0.5rem;
   padding: 0.6rem 0.8rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 }
