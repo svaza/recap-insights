@@ -80,8 +80,8 @@ export default function SelectPage() {
                                                     aria-pressed={active}
                                                     className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
                                                 >
-                                                    <div className="d-flex align-items-center justify-content-between gap-3">
-                                                        <div className="d-flex align-items-center gap-3 min-w-0">
+                                                    <div className="d-flex align-items-center justify-content-between gap-3 select-option__row">
+                                                        <div className="d-flex align-items-center gap-3 min-w-0 select-option__main">
                                                             <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
                                                             <div className="min-w-0">
                                                                 <div className="fw-semibold text-truncate">{opt.label}</div>

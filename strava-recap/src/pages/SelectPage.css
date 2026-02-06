@@ -266,6 +266,24 @@
     .select-option__range {
         font-size: 0.66rem;
         padding: 0.15rem 0.4rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .select-option__row {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .select-option__main {
+        flex: 1 1 100%;
+    }
+
+    .select-option__row .select-option__range {
+        flex: 0 0 100%;
+        width: 100%;
+        margin-top: 0.35rem;
+        text-align: left;
     }
 
     .select-page__generate-btn {
