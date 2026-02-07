@@ -403,26 +403,35 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
 
   return (
     <div className="flyer-container">
-      {/* Controls */}
-      <div className="flyer-controls mb-4">
-        <div className="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+      {/* Preview */}
+      <div className="flyer-preview-wrapper w-100 mw-md-400">
+        <div className="flyer-preview-host">
+          <FlyerVisual onBgReady={() => setPreviewBgReady(true)} />
+        </div>
+      </div>
+
+      {/* Controls — below preview */}
+      <div className="flyer-controls mt-4">
+        <div className="flyer-actions">
           {showShareButton && (
             <button
               type="button"
-              className="btn btn-success btn-sm"
+              className="flyer-action-btn flyer-action-btn--primary"
               onClick={handleShare}
               disabled={!canExport}
-              style={{ whiteSpace: "nowrap" }}
             >
               {isExporting ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Exporting...
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  Exporting…
                 </>
               ) : !backgroundDataUrl || !previewBgReady || !exportBgReady ? (
-                <>Loading...</>
+                <>Loading…</>
               ) : (
-                <>📤 Save / Share</>
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  Save / Share
+                </>
               )}
             </button>
           )}
@@ -430,31 +439,29 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
           {showDownloadButton && (
             <button
               type="button"
-              className={`btn btn-sm ${showShareButton ? "btn-outline-secondary" : "btn-success"}`}
+              className={`flyer-action-btn ${showShareButton ? "flyer-action-btn--secondary" : "flyer-action-btn--primary"}`}
               onClick={handleDownload}
               disabled={!canExport}
-              style={{ whiteSpace: "nowrap" }}
             >
               {isExporting ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Exporting...
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  Exporting…
                 </>
               ) : !backgroundDataUrl || !previewBgReady || !exportBgReady ? (
-                <>Loading...</>
+                <>Loading…</>
               ) : (
-                <>📥 Download</>
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download
+                </>
               )}
             </button>
           )}
         </div>
-      </div>
-
-      {/* Preview */}
-      <div className="flyer-preview-wrapper w-100 mw-md-400">
-        <div className="flyer-preview-host">
-          <FlyerVisual onBgReady={() => setPreviewBgReady(true)} />
-        </div>
+        <p className="flyer-export-hint">
+          Preview at reduced size · exports at 1080 × 1920 px
+        </p>
       </div>
 
       {/* Export node at fixed 1080×1920 (keep near viewport; do NOT display:none) */}
@@ -463,10 +470,6 @@ export default function FlyerGenerator({ data }: FlyerGeneratorProps) {
           <FlyerVisual onBgReady={() => setExportBgReady(true)} />
         </div>
       </div>
-
-      <p className="text-secondary small text-center mt-3">
-        Preview shown at reduced size. Download exports at 1080×1920px.
-      </p>
     </div>
   );
 }

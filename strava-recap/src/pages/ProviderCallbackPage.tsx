@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import PageShell from "../ui/PageShell";
+import PulseLoader from "../ui/PulseLoader";
+import "./ProviderCallbackPage.css";
 
 interface CallbackResultDto {
     success: boolean;
@@ -67,7 +70,7 @@ export default function ProviderCallbackPage() {
                         navigate("/?strava=exchange_failed", { replace: true });
                     }
                 }
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error("Exception during callback:", e);
                 navigate("/?strava=exchange_error", { replace: true });
             }
@@ -77,9 +80,23 @@ export default function ProviderCallbackPage() {
     }, [navigate]);
 
     return (
-        <div style={{ padding: 24 }}>
-            <h2>Strava</h2>
-            <p>Finalizing connection…</p>
-        </div>
+        <PageShell title="Connecting">
+            <div className="callback-page">
+                <div className="callback-page__card">
+                    <div className="callback-page__icon" aria-hidden="true">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg>
+                    </div>
+                    <h2 className="callback-page__title">Finalizing connection</h2>
+                    <p className="callback-page__subtitle">
+                        Exchanging authorization with your provider…
+                    </p>
+                    <PulseLoader label="Connecting to provider…" />
+                </div>
+            </div>
+        </PageShell>
     );
 }

@@ -1,0 +1,66 @@
+/* ─── Provider Callback Page ─── */
+
+.callback-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40vh;
+    animation: callbackFadeIn 0.4s ease-out;
+}
+
+.callback-page__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 360px;
+    width: 100%;
+    padding: 2.5rem 1.5rem;
+    background: var(--ath-surface);
+    border: 1px solid var(--ath-border);
+    border-radius: 12px;
+}
+
+.callback-page__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(196, 112, 90, 0.1);
+    color: var(--ath-accent);
+    margin-bottom: 1.25rem;
+}
+
+.callback-page__title {
+    font-family: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--ath-text);
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.01em;
+}
+
+.callback-page__subtitle {
+    font-size: 0.82rem;
+    color: var(--ath-text-muted);
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+}
+
+/* PulseLoader inside callback page takes full card width */
+.callback-page .pulse-loader {
+    width: 100%;
+}
+
+@keyframes callbackFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

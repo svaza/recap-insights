@@ -17,6 +17,7 @@ import "./RecapPage.css";
 import WowGrid from "../ui/WowGrid";
 import type { WowItem } from "../ui/WowItemCard";
 import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
+import PulseLoader from "../ui/PulseLoader";
 import BreakdownActionButton from "../ui/BreakdownActionButton";
 import TotalsBreakdownModal, { type TotalsBreakdownItem } from "../ui/TotalsBreakdownModal";
 
@@ -1412,14 +1413,7 @@ export default function RecapPage() {
         },
     ];
 
-    const navItems: NavItem[] = [
-        {
-            id: "change-period",
-            emoji: "📅",
-            label: "Change period",
-            onClick: () => navigate("/select"),
-        },
-    ];
+    const navItems: NavItem[] = [];
 
     const providerBadge: ProviderBadgeInfo | undefined = connected !== null
         ? {
@@ -1440,17 +1434,21 @@ export default function RecapPage() {
                     
                     {(loading || error || connected === false) && (
                         <div className="recap-status-card mb-4">
-                                {loading && <div className="recap-loading-text mt-3">Fetching activities… computing recap…</div>}
+                                {loading && (
+                                    <div className="recap-status-loading mt-3">
+                                        <PulseLoader label="Fetching activities… computing recap…" />
+                                    </div>
+                                )}
                                 {error && <div className="recap-error-text mt-3">Error: {error}</div>}
 
                                 {connected === false && (
                                     <div className="mt-3">
                                         <ConnectProviderPrompt
-                                            message="Connect a provider (read-only) to generate this recap."
+                                            message="Connect a provider (read-only) to generate your recap."
                                             onConnectStrava={() => connectProvider("strava")}
                                             onConnectIntervalsIcu={() => connectProvider("intervalsicu")}
                                             backButton={{
-                                                label: "Back",
+                                                label: "Back to select",
                                                 onClick: () => navigate("/select"),
                                             }}
                                         />
@@ -1461,6 +1459,22 @@ export default function RecapPage() {
 
                     {total && (
                         <>
+                            {/* Period selector — always visible */}
+                            <div className="recap-period-bar mb-3">
+                                <div className="recap-period-bar__info">
+                                    <svg className="recap-period-bar__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    <span className="recap-period-bar__label">{headerTitle}</span>
+                                    <span className="recap-period-bar__range">{rangeLabel}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="recap-period-bar__change"
+                                    onClick={() => navigate("/select")}
+                                >
+                                    Change
+                                </button>
+                            </div>
+
                             {hasActivityTypeFilter && (
                                 <div className="recap-activity-filter-panel mb-3">
                                     <div className="recap-activity-filter__label">Activity filter</div>
@@ -1504,16 +1518,10 @@ export default function RecapPage() {
                                         Pick a sport to focus on that activity only. Use “All activities” to return to your full recap.
                                     </p>
                                     {isActivityFilterLoading && (
-                                        <div className="recap-activity-filter__loading" role="status" aria-live="polite">
-                                            <span className="recap-activity-filter__loading-label">
-                                                Rebuilding recap for your selection
-                                            </span>
-                                            <span className="recap-activity-filter__loading-bars" aria-hidden="true">
-                                                <span className="recap-activity-filter__loading-bar" />
-                                                <span className="recap-activity-filter__loading-bar" />
-                                                <span className="recap-activity-filter__loading-bar" />
-                                            </span>
-                                        </div>
+                                        <PulseLoader
+                                            label="Rebuilding recap…"
+                                            className="recap-activity-filter__loading"
+                                        />
                                     )}
                                 </div>
                             )}
@@ -1596,7 +1604,9 @@ export default function RecapPage() {
                                 </div>
 
                                 {showOverallTrainingInsights && trainingInsights && (
-                                    <div className="mt-4">
+                                    <>
+                                    <div className="recap-section-divider" />
+                                    <div>
                                         <div className="recap-section-label mb-2">Overall training insights</div>
                                         <div className="recap-training-trend">
                                             <div className="recap-training-trend__label">Training trend</div>
@@ -1624,10 +1634,13 @@ export default function RecapPage() {
                                             ))}
                                         </div>
                                     </div>
+                                    </>
                                 )}
 
                                 {wowItems.length > 0 && (
-                                    <div className="mt-4">
+                                    <>
+                                    <div className="recap-section-divider" />
+                                    <div>
                                         <div
                                             ref={wowHeaderRef}
                                             className="recap-wow-header mb-2"
@@ -1648,12 +1661,14 @@ export default function RecapPage() {
                                         </div>
                                         <WowGrid items={visibleWowItems} />
                                     </div>
+                                    </>
                                 )}
 
-                                <div className="mt-4" ref={breakdownRef}>
+                                <div className="recap-section-divider" />
+                                <div ref={breakdownRef}>
                                     <div className="recap-section-label mb-2">Breakdown</div>
                                     <p className="recap-breakdown-intro">Contextual summary by activity type</p>
-                                    <div className="row g-0">
+                                    <div className="row g-2">
                                         {breakdown.map((item) => {
                                             const activityGroup = getActivityGroup(item.type);
                                             const flyerParams = new URLSearchParams(location.search);

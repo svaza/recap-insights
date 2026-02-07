@@ -1,0 +1,66 @@
+/* ─── Pulse Loader: Activity-trace loading indicator ─── */
+
+.pulse-loader {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    animation: pulseLoaderFadeIn 0.3s ease-out;
+}
+
+.pulse-loader__svg {
+    width: 100%;
+    height: 20px;
+    opacity: 0.6;
+    overflow: visible;
+}
+
+.pulse-loader__svg path {
+    stroke-dasharray: 160;
+    stroke-dashoffset: 160;
+    animation: pulseLoaderDraw 1.4s ease-in-out infinite;
+}
+
+.pulse-loader__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ath-text-dim);
+}
+
+/* ─── Keyframes ─── */
+@keyframes pulseLoaderDraw {
+    0% {
+        stroke-dashoffset: 160;
+        opacity: 0.4;
+    }
+    50% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
+    100% {
+        stroke-dashoffset: -160;
+        opacity: 0.4;
+    }
+}
+
+@keyframes pulseLoaderFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+    .pulse-loader__svg path {
+        animation: none;
+    }
+
+    .pulse-loader {
+        animation: none;
+    }
+}

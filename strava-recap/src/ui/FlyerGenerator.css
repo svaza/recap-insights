@@ -13,6 +13,66 @@
 .flyer-controls {
   width: 100%;
   max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.flyer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.flyer-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: 0.45rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.flyer-action-btn--primary {
+  background: var(--ath-accent, #c4705a);
+  color: #fff;
+  border-color: var(--ath-accent, #c4705a);
+}
+
+.flyer-action-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.flyer-action-btn--secondary {
+  background: transparent;
+  color: var(--ath-text, #e8e6e1);
+  border-color: var(--ath-border-strong, rgba(255,255,255,0.12));
+}
+
+.flyer-action-btn--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.flyer-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.flyer-export-hint {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--ath-text-muted, #8b8b8b);
+  margin: 0.75rem 0 0;
+  letter-spacing: 0.02em;
 }
 
 /* Preview wrapper */
@@ -323,10 +383,7 @@
   }
 }
 
-/* Button disabled */
-.btn-success:disabled {
-  opacity: 0.8;
-}
+
 
 /* Export host:
    Keep it NEAR viewport (Safari paints it more reliably than -10000px),

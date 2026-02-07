@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import type { RecapQuery } from "../models/models";
-import { buildRecapUrl } from "../utils/recapQuery";
+import { buildRecapUrl, parseRecapQuery } from "../utils/recapQuery";
 import { formatRangeLabel } from "../utils/format";
 import { possessive } from "../utils/helper";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
@@ -26,9 +26,37 @@ const PERIOD_OPTIONS: PeriodOption[] = [
     { id: "lastYear", emoji: "🏆", label: "Last year", subtitle: "Previous calendar year", query: { type: "calendar", unit: "year", offset: -1 } },
 ];
 
+const PERIOD_STORAGE_KEY = "select.periodId";
+
+/** Match a RecapQuery to a PERIOD_OPTIONS id */
+function matchPeriodId(q: RecapQuery): string | null {
+    return PERIOD_OPTIONS.find((opt) => {
+        if (opt.query.type !== q.type) return false;
+        if (q.type === "rolling" && opt.query.type === "rolling") return opt.query.days === q.days;
+        if (q.type === "calendar" && opt.query.type === "calendar")
+            return opt.query.unit === q.unit && (opt.query.offset ?? 0) === (q.offset ?? 0);
+        return false;
+    })?.id ?? null;
+}
+
+function resolveInitialPeriod(searchParams: URLSearchParams): string {
+    // 1. Try to match from URL query params (e.g. coming from recap with params forwarded)
+    const fromUrl = parseRecapQuery(searchParams);
+    if (fromUrl) {
+        const id = matchPeriodId(fromUrl);
+        if (id) return id;
+    }
+    // 2. Try sessionStorage (last selected period)
+    const stored = sessionStorage.getItem(PERIOD_STORAGE_KEY);
+    if (stored && PERIOD_OPTIONS.some((o) => o.id === stored)) return stored;
+    // 3. Default
+    return PERIOD_OPTIONS[0].id;
+}
+
 export default function SelectPage() {
     const navigate = useNavigate();
-    const [selectedId, setSelectedId] = useState(PERIOD_OPTIONS[0].id);
+    const [searchParams] = useSearchParams();
+    const [selectedId, setSelectedId] = useState(() => resolveInitialPeriod(searchParams));
     const { athleteProfile, connected, providerDisplayName } = useAthleteProfile();
 
     const selected = useMemo(
@@ -36,7 +64,10 @@ export default function SelectPage() {
         [selectedId]
     );
 
-    const go = () => navigate(buildRecapUrl(selected.query));
+    const go = () => {
+        sessionStorage.setItem(PERIOD_STORAGE_KEY, selectedId);
+        navigate(buildRecapUrl(selected.query));
+    };
 
     const pageTitle = athleteProfile?.firstName 
         ? `${possessive(athleteProfile.firstName)} Recap Insights`
@@ -55,68 +86,120 @@ export default function SelectPage() {
             providerBadge={providerBadge}
         >
             <div className="select-page">
-                <div className="row justify-content-center">
-                    <div className="col-12 col-xxl-10">
-                        <section className="card select-panel border-0">
-                            <div className="card-body p-4 p-lg-5">
-                                <p className="select-kicker mb-2">Training Window</p>
-                                <h3 className="h4 mb-2">Choose your recap period</h3>
-                                <p className="text-secondary mb-4 select-copy">
-                                    Select the training block you want to review. We pull activity totals and highlights
-                                    from your connected provider and generate a concise recap you can keep or share.
-                                    Supported:{" "}
-                                    <span className="provider-name provider-name--strava">Strava</span> &amp;{" "}
-                                    <span className="provider-name provider-name--intervals">Intervals.icu</span>.
-                                </p>
+                <div className="select-page__inner">
+                    <div className="select-page__header">
+                        <p className="select-kicker mb-2">Training Window</p>
+                        <h3 className="select-page__heading mb-2">Choose your recap period</h3>
+                        <p className="select-copy">
+                            Pick a time window and we'll build your recap from{" "}
+                            <span className="provider-name provider-name--strava">Strava</span> or{" "}
+                            <span className="provider-name provider-name--intervals">Intervals.icu</span>.
+                        </p>
+                    </div>
 
-                                <div className="row g-2">
-                                    {PERIOD_OPTIONS.map((opt) => {
-                                        const active = opt.id === selectedId;
-                                        return (
-                                            <div key={opt.id} className="col-12 col-lg-6">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSelectedId(opt.id)}
-                                                    aria-pressed={active}
-                                                    className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
-                                                >
-                                                    <div className="d-flex align-items-center justify-content-between gap-3 select-option__row">
-                                                        <div className="d-flex align-items-center gap-3 min-w-0 select-option__main">
-                                                            <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
-                                                            <div className="min-w-0">
-                                                                <div className="fw-semibold text-truncate">{opt.label}</div>
-                                                                <small className="d-block text-truncate select-option__subtitle">{opt.subtitle}</small>
-                                                            </div>
-                                                        </div>
-                                                        <div className="select-option__range">{formatRangeLabel(opt.query)}</div>
+                    {/* Rolling group */}
+                    <div className="select-group">
+                        <div className="select-group__label">Rolling</div>
+                        <div className="row g-2">
+                            {PERIOD_OPTIONS.filter((o) => o.query.type === "rolling").map((opt) => {
+                                const active = opt.id === selectedId;
+                                return (
+                                    <div key={opt.id} className="col-12 col-md-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedId(opt.id)}
+                                            aria-pressed={active}
+                                            className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
+                                        >
+                                            <div className="d-flex align-items-center justify-content-between gap-3 select-option__row">
+                                                <div className="d-flex align-items-center gap-3 min-w-0 select-option__main">
+                                                    <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
+                                                    <div className="min-w-0">
+                                                        <div className="fw-semibold text-truncate">{opt.label}</div>
+                                                        <small className="d-block text-truncate select-option__subtitle">{opt.subtitle}</small>
                                                     </div>
-                                                </button>
+                                                </div>
+                                                <div className="select-option__range">{formatRangeLabel(opt.query)}</div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
-                                <div className="d-grid d-sm-flex gap-2 mt-4">
-                                    <button type="button" className="btn select-page__generate-btn flex-sm-fill" onClick={go}>
-                                        Generate Recap
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary flex-sm-fill"
-                                        onClick={() => setSelectedId(PERIOD_OPTIONS[0].id)}
-                                    >
-                                        Reset selection
-                                    </button>
-                                </div>
+                    {/* Monthly group */}
+                    <div className="select-group">
+                        <div className="select-group__label">Monthly</div>
+                        <div className="row g-2">
+                            {PERIOD_OPTIONS.filter((o) => o.query.type === "calendar" && o.query.unit === "month").map((opt) => {
+                                const active = opt.id === selectedId;
+                                return (
+                                    <div key={opt.id} className="col-12 col-md-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedId(opt.id)}
+                                            aria-pressed={active}
+                                            className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
+                                        >
+                                            <div className="d-flex align-items-center justify-content-between gap-3 select-option__row">
+                                                <div className="d-flex align-items-center gap-3 min-w-0 select-option__main">
+                                                    <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
+                                                    <div className="min-w-0">
+                                                        <div className="fw-semibold text-truncate">{opt.label}</div>
+                                                        <small className="d-block text-truncate select-option__subtitle">{opt.subtitle}</small>
+                                                    </div>
+                                                </div>
+                                                <div className="select-option__range">{formatRangeLabel(opt.query)}</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
-                                <div className="mt-4 pt-3 border-top border-secondary-subtle">
-                                    <p className="text-secondary small mb-0 select-privacy-note">
-                                        We use read-only activity access, store recap summaries only in your browser, and do not process or store GPS routes.
-                                        For details, read the full <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>.
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
+                    {/* Yearly group */}
+                    <div className="select-group">
+                        <div className="select-group__label">Yearly</div>
+                        <div className="row g-2">
+                            {PERIOD_OPTIONS.filter((o) => o.query.type === "calendar" && o.query.unit === "year").map((opt) => {
+                                const active = opt.id === selectedId;
+                                return (
+                                    <div key={opt.id} className="col-12 col-md-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedId(opt.id)}
+                                            aria-pressed={active}
+                                            className={`btn select-option text-start p-3 h-100 w-100 ${active ? "select-option--active" : ""}`}
+                                        >
+                                            <div className="d-flex align-items-center justify-content-between gap-3 select-option__row">
+                                                <div className="d-flex align-items-center gap-3 min-w-0 select-option__main">
+                                                    <span className="select-option__emoji" aria-hidden="true">{opt.emoji}</span>
+                                                    <div className="min-w-0">
+                                                        <div className="fw-semibold text-truncate">{opt.label}</div>
+                                                        <small className="d-block text-truncate select-option__subtitle">{opt.subtitle}</small>
+                                                    </div>
+                                                </div>
+                                                <div className="select-option__range">{formatRangeLabel(opt.query)}</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Generate */}
+                    <button type="button" className="btn select-page__generate-btn w-100" onClick={go}>
+                        Generate Recap
+                    </button>
+
+                    <div className="select-page__footer">
+                        <p className="select-privacy-note mb-0">
+                            We use read-only activity access, store recap summaries only in your browser, and do not process GPS routes.
+                            <Link to="/privacy">Privacy Policy</Link>
+                        </p>
                     </div>
                 </div>
             </div>

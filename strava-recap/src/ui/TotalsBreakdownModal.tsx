@@ -39,9 +39,10 @@ export default function TotalsBreakdownModal(props: TotalsBreakdownModalProps) {
                 aria-describedby={descriptionId}
                 onClick={(event) => event.stopPropagation()}
             >
+                {/* Header */}
                 <div className="recap-modal__header">
                     <div className="recap-modal__title-wrap">
-                        <div className="recap-section-label">{props.sectionLabel}</div>
+                        <div className="recap-modal__section-label">{props.sectionLabel}</div>
                         <h2 id={titleId} className="recap-modal__title">{props.title}</h2>
                         <p id={descriptionId} className="recap-modal__description">{props.description}</p>
                     </div>
@@ -49,17 +50,24 @@ export default function TotalsBreakdownModal(props: TotalsBreakdownModalProps) {
                         type="button"
                         className="recap-modal__close"
                         onClick={props.onClose}
+                        aria-label="Close"
                     >
-                        Close
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
                     </button>
                 </div>
 
+                {/* Items */}
                 {props.items.length > 0 ? (
                     <div className="recap-totals-breakdown-list">
-                        {props.items.map((item) => (
+                        {props.items.map((item, index) => (
                             <div key={item.id} className="recap-totals-breakdown-item">
                                 <div className="recap-totals-breakdown-item__head">
                                     <div className="recap-totals-breakdown-item__type">
+                                        <span className="recap-totals-breakdown-item__rank">
+                                            {index + 1}
+                                        </span>
                                         <span
                                             className="recap-totals-breakdown-item__emoji"
                                             aria-hidden="true"
@@ -72,11 +80,13 @@ export default function TotalsBreakdownModal(props: TotalsBreakdownModalProps) {
                                         {item.valueLabel}
                                     </div>
                                 </div>
-                                <div className="recap-totals-breakdown-item__track" aria-hidden="true">
-                                    <div
-                                        className="recap-totals-breakdown-item__fill"
-                                        style={{ width: `${item.widthPct}%` }}
-                                    />
+                                <div className="recap-totals-breakdown-item__bar">
+                                    <div className="recap-totals-breakdown-item__track" aria-hidden="true">
+                                        <div
+                                            className="recap-totals-breakdown-item__fill"
+                                            style={{ width: `${item.widthPct}%` }}
+                                        />
+                                    </div>
                                     <span className="recap-totals-breakdown-item__pct">
                                         {item.pctLabel}
                                     </span>

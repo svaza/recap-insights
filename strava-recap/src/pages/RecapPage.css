@@ -34,6 +34,66 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
+/* ── Period bar ── */
+.recap-period-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid var(--ath-border);
+    border-radius: 0.42rem;
+    padding: 0.55rem 0.74rem;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.recap-period-bar__info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.recap-period-bar__icon {
+    flex-shrink: 0;
+    color: var(--ath-accent, #c4705a);
+    opacity: 0.85;
+}
+
+.recap-period-bar__label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ath-text);
+    white-space: nowrap;
+}
+
+.recap-period-bar__range {
+    font-size: 0.72rem;
+    color: var(--ath-text-muted);
+    white-space: nowrap;
+}
+
+.recap-period-bar__change {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--ath-border-strong, rgba(255,255,255,0.12));
+    color: var(--ath-accent, #c4705a);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: all 150ms ease;
+    font-family: inherit;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.recap-period-bar__change:hover {
+    background: rgba(196, 112, 90, 0.12);
+    border-color: var(--ath-accent, #c4705a);
+}
+
 .recap-activity-filter-panel {
     border: 1px solid var(--ath-border);
     border-radius: 0.42rem;
@@ -124,45 +184,7 @@
 }
 
 .recap-activity-filter__loading {
-    margin-top: 0.48rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.48rem;
-    border: 1px solid rgba(122, 140, 110, 0.35);
-    border-radius: 0.32rem;
-    padding: 0.28rem 0.42rem;
-    background: rgba(122, 140, 110, 0.08);
-}
-
-.recap-activity-filter__loading-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--ath-text-muted);
-}
-
-.recap-activity-filter__loading-bars {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 3px;
-    height: 12px;
-}
-
-.recap-activity-filter__loading-bar {
-    width: 3px;
-    height: 5px;
-    border-radius: 999px;
-    background: var(--ath-sage);
-    opacity: 0.75;
-    animation: recapFilterBars 900ms ease-in-out infinite;
-}
-
-.recap-activity-filter__loading-bar:nth-child(2) {
-    animation-delay: 120ms;
-}
-
-.recap-activity-filter__loading-bar:nth-child(3) {
-    animation-delay: 240ms;
+    margin-top: 0.6rem;
 }
 
 /* ─── Recap Card ─── */
@@ -440,6 +462,19 @@
 
 /* WOW card theming is centralized in src/ui/wow/wowTheme.css */
 
+/* ─── Section Divider ─── */
+.recap-section-divider {
+    height: 1px;
+    margin: 1.35rem 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--ath-border-strong) 15%,
+        var(--ath-border-strong) 85%,
+        transparent 100%
+    );
+}
+
 /* ─── Breakdown Section ─── */
 .recap-breakdown-intro {
     font-size: 0.78rem;
@@ -449,11 +484,11 @@
 
 .recap-breakdown-item {
     border: 1px solid var(--ath-border);
-    border-radius: 0.4rem;
+    border-radius: 0.45rem;
     padding: 0.85rem 1rem;
     background: rgba(255, 255, 255, 0.015);
     transition: border-color 150ms ease;
-    margin-bottom: -1px;
+    height: 100%;
 }
 
 .recap-breakdown-item:hover {
@@ -510,10 +545,14 @@
     padding: 1.5rem;
 }
 
-.recap-loading-text {
-    color: var(--ath-text-muted);
-    font-size: 0.88rem;
-    font-weight: 500;
+.recap-status-card--connect {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+}
+
+.recap-status-loading {
+    max-width: 320px;
+    margin: 0 auto;
 }
 
 .recap-error-text {
@@ -522,6 +561,7 @@
     font-weight: 500;
 }
 
+/* ─── Modal ─── */
 /* ─── Modal ─── */
 .recap-modal-backdrop {
     position: fixed;
@@ -532,19 +572,31 @@
     justify-content: center;
     padding: 1rem;
     background: rgba(8, 10, 12, 0.72);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: recap-modal-fade-in 180ms ease;
+}
+
+@keyframes recap-modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes recap-modal-slide-up {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .recap-modal {
-    width: min(680px, 100%);
+    width: min(580px, 100%);
     max-height: min(80vh, 720px);
     overflow: auto;
     border: 1px solid var(--ath-border-strong);
-    border-radius: 0.55rem;
+    border-radius: 0.6rem;
     background: var(--ath-surface);
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
-    padding: 1rem;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.5);
+    padding: 1.25rem;
+    animation: recap-modal-slide-up 220ms ease;
 }
 
 .recap-modal__header {
@@ -552,56 +604,74 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .recap-modal__title-wrap {
     min-width: 0;
 }
 
+.recap-modal__section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ath-accent);
+}
+
 .recap-modal__title {
-    margin: 0.35rem 0 0;
-    font-size: 1.08rem;
+    margin: 0.3rem 0 0;
+    font-family: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: 1.15rem;
     line-height: 1.15;
     font-weight: 800;
     color: var(--ath-text);
 }
 
 .recap-modal__description {
-    margin: 0.35rem 0 0;
-    font-size: 0.78rem;
+    margin: 0.3rem 0 0;
+    font-size: 0.75rem;
     color: var(--ath-text-dim);
 }
 
 .recap-modal__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
     border: 1px solid var(--ath-border-strong);
     color: var(--ath-text-muted);
     background: transparent;
     border-radius: 0.35rem;
-    font-size: 0.73rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.32rem 0.62rem;
     flex-shrink: 0;
+    cursor: pointer;
+    transition: all 150ms ease;
+    padding: 0;
 }
 
 .recap-modal__close:hover {
     border-color: rgba(255, 255, 255, 0.2);
     color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 /* ─── Totals Breakdown Modal ─── */
 .recap-totals-breakdown-list {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
 
 .recap-totals-breakdown-item {
     border: 1px solid var(--ath-border);
     border-radius: 0.45rem;
     background: rgba(255, 255, 255, 0.015);
-    padding: 0.68rem 0.75rem;
+    padding: 0.65rem 0.75rem;
+    transition: border-color 150ms ease;
+}
+
+.recap-totals-breakdown-item:hover {
+    border-color: var(--ath-border-strong);
 }
 
 .recap-totals-breakdown-item__head {
@@ -622,22 +692,50 @@
     color: var(--ath-text);
 }
 
+.recap-totals-breakdown-item__rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--ath-border);
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--ath-text-muted);
+    flex-shrink: 0;
+}
+
+.recap-totals-breakdown-item:first-child .recap-totals-breakdown-item__rank {
+    background: rgba(196, 112, 90, 0.15);
+    border-color: rgba(196, 112, 90, 0.3);
+    color: var(--ath-accent);
+}
+
 .recap-totals-breakdown-item__emoji {
     font-size: 1rem;
     line-height: 1;
 }
 
 .recap-totals-breakdown-item__value {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.01em;
-    color: var(--ath-text-muted);
+    color: var(--ath-text);
     white-space: nowrap;
+}
+
+.recap-totals-breakdown-item__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .recap-totals-breakdown-item__track {
     position: relative;
-    height: 1rem;
+    flex: 1;
+    height: 0.5rem;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.07);
     overflow: hidden;
@@ -646,18 +744,18 @@
 .recap-totals-breakdown-item__fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(196, 112, 90, 0.92), rgba(122, 140, 110, 0.88));
+    background: linear-gradient(90deg, var(--ath-accent) 0%, var(--ath-sage) 100%);
+    transition: width 400ms ease;
 }
 
 .recap-totals-breakdown-item__pct {
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.64rem;
+    font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--ath-text-muted);
+    white-space: nowrap;
+    min-width: 2.5rem;
+    text-align: right;
 }
 
 .recap-totals-breakdown-empty {
@@ -746,15 +844,12 @@
     .recap-modal {
         width: 100%;
         max-height: min(86vh, 760px);
-        padding: 0.85rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
     }
 
     .recap-modal__title {
-        font-size: 0.98rem;
-    }
-
-    .recap-modal__description {
-        font-size: 0.75rem;
+        font-size: 1rem;
     }
 
     .recap-breakdown-fab {
@@ -779,26 +874,10 @@
     .recap-stat__action-btn {
         transition: none;
     }
-
-    .recap-activity-filter__loading-bar {
-        animation: none;
-    }
 }
 
 /* ─── Suppress recapSpin globally (no spinning glow needed) ─── */
 @keyframes recapSpin {
     from { transform: none; }
     to { transform: none; }
-}
-
-@keyframes recapFilterBars {
-    0%,
-    100% {
-        height: 5px;
-        opacity: 0.45;
-    }
-    50% {
-        height: 12px;
-        opacity: 1;
-    }
 }
