@@ -9,7 +9,8 @@
 ## Core Values
 
 ### 1. **User Privacy First**
-- **Never store activity data**: All recap generation happens on-demand; no activity history is persisted
+- **Never persist activity history server-side**: Recap generation is on-demand, and activity history is not stored on backend infrastructure
+- **Scoped browser caching only**: Recap summaries may be cached in browser storage for performance and can be cleared by the user
 - **Secure authentication**: OAuth tokens stored in HTTP-only cookies, never exposed to frontend JavaScript
 - **Transparent data usage**: Users understand exactly what data is accessed and how it's used
 - **Right to disconnect**: Users can revoke access at any time with complete data cleanup
@@ -31,6 +32,11 @@
 - **Pluggable services**: Each provider brings its own auth, token, and activity services
 - **Open for extension**: New features can be added without breaking existing functionality
 - **Consistent interfaces**: All providers implement the same contract
+
+### 5. **Insight Explainability & Product Clarity**
+- **Explain derived metrics**: New visualizations (for example heatmap effort levels) must include plain-language explanations
+- **Communicate product changes**: User-visible releases should be documented in-app via versioned release notes
+- **Safe migrations**: Version changes that alter recap semantics should trigger cache reset and re-auth safeguards
 
 ---
 
@@ -97,12 +103,20 @@ public interface IProvider
 
 **Rationale**: Provides seamless navigation without full page reloads.
 
-#### **4. Session Storage for Caching**
-- Cache API responses with timestamps
-- Invalidate on explicit user actions
+#### **4. Browser Storage Strategy**
+- Use `localStorage` for recap/profile cache and stable user preferences (`recap.units`, `recap.activityType`, `recap.release.version`)
+- Use `sessionStorage` only for short-lived UI state (`select.periodId`)
+- Invalidate recap cache on disconnect and release migrations
 - Never cache sensitive tokens
 
-**Rationale**: Reduces API calls while maintaining security; session storage clears on tab close.
+**Rationale**: Blends persistent UX improvements with explicit invalidation controls while preserving token security boundaries.
+
+#### **5. Config-Driven Release Communication**
+- Maintain release metadata in a single configuration source
+- Render release notes from config to avoid hardcoded UI content
+- Gate startup behavior by app version to force safe recap cache/auth refresh when needed
+
+**Rationale**: Keeps user communication, migration behavior, and implementation history consistent across releases.
 
 ---
 
@@ -195,8 +209,8 @@ _logger.LogInformation("Getting data");
 ## Security Principles
 
 ### **1. Token Management**
-- **Storage**: HTTP-only cookies with secure flag in production
-- **Lifetime**: Track expiration; refresh when needed
+- **Storage**: HTTP-only, `SameSite=Lax` recap cookies (`recap_access_token`, `recap_expires_at`, `recap_provider`, `recap_oauth_state`)
+- **Lifetime**: Track expiration in `recap_expires_at`; refresh tokens are provider-side artifacts and are not exposed to frontend JavaScript
 - **Scope**: Request minimum required permissions
 - **Cleanup**: Clear all tokens on disconnect
 
@@ -241,6 +255,10 @@ _logger.LogInformation("Getting data");
 - Clear provider indicators
 - Explain calculation methods
 
+### **6. Explainable Insights**
+- Advanced visualizations must include "how this works" guidance in-product
+- Drill-down controls (activity filter, breakdown modal, heatmap) should preserve context and avoid ambiguous state
+
 ---
 
 ## Testing Philosophy
@@ -251,6 +269,8 @@ _logger.LogInformation("Getting data");
 - ✅ Service layer business logic
 - ✅ Date range calculations
 - ✅ Activity aggregation algorithms
+- ✅ Activity-type filtering behavior in recap request/response
+- ✅ Heatmap day scoring (`ToActivityDays`) and effort metric selection
 - ✅ Provider factory resolution
 - ✅ Extension methods
 
@@ -258,6 +278,9 @@ _logger.LogInformation("Getting data");
 - ✅ Complex UI logic
 - ✅ Custom hooks
 - ✅ Data transformations
+- ✅ Release version migration flow and release-notes modal behavior
+- ✅ Activity filter persistence and URL/query synchronization
+- ✅ Heatmap interaction states (tooltip, keyboard, help modal)
 - ✅ Edge cases in formatting
 
 ### **What NOT to Test**
@@ -337,10 +360,15 @@ Requirements:
 - **Alternatives Considered**: Single service with if/else logic, separate endpoints per provider
 - **Trade-offs**: More upfront complexity vs. long-term maintainability
 
-### **Why Session Storage over Local Storage?**
-- **Rationale**: Automatic cleanup on tab close, less persistent than localStorage
-- **Alternatives Considered**: Local storage, IndexedDB, no caching
-- **Trade-offs**: Data lost on tab close vs. better privacy
+### **Why Local Storage + Session Storage Hybrid?**
+- **Rationale**: Recap/profile cache and preferences benefit from persistence across reloads, while short-lived selection state should reset with session boundaries
+- **Alternatives Considered**: Session-only storage, local-only storage, IndexedDB
+- **Trade-offs**: Slightly more invalidation complexity vs. better UX and controlled persistence
+
+### **Why Config-Driven Release Notes + Version Gate?**
+- **Rationale**: Release history should be maintainable without UI rewrites, and version mismatches should trigger safe cache/auth reset behavior
+- **Alternatives Considered**: Static markdown-only changelog, manual one-off migration scripts
+- **Trade-offs**: Additional startup logic vs. clearer user communication and safer upgrades
 
 ### **Why .NET 8 over Node.js for Backend?**
 - **Rationale**: Strong typing, excellent Azure Functions support, C# developer familiarity
@@ -381,7 +409,7 @@ Requirements:
 ### **Frontend Compatibility**
 - **Target Browsers**: Last 2 versions of Chrome, Firefox, Safari, Edge
 - **Mobile**: iOS 14+, Android 10+
-- **Progressive Enhancement**: Core functionality works without JavaScript
+- **JavaScript Requirement**: Core SPA functionality requires modern JavaScript-enabled browsers
 
 ### **Provider API Compatibility**
 - **Strava**: Follow v3 API, monitor deprecation notices
@@ -413,8 +441,8 @@ Requirements:
 ## License & Attribution
 
 ### **Project License**
-- Open source under MIT License (or specify your license)
-- Free for personal and commercial use
+- Open source under GNU AGPL-3.0-only
+- Network-deployed modified versions must provide corresponding source code per AGPL
 - No warranty provided
 
 ### **Third-Party Dependencies**
@@ -449,5 +477,5 @@ Requirements:
 ---
 
 **Adopted**: January 2026  
-**Last Reviewed**: January 2026  
-**Next Review**: July 2026 or upon major architectural changes
+**Last Reviewed**: February 2026  
+**Next Review**: August 2026 or upon major architectural changes
