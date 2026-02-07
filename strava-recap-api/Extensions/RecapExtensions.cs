@@ -32,6 +32,10 @@ public static class RecapExtensions
         var unit = query.TryGetValue("unit", out var unitVal) ? unitVal.ToString() : null;
         var days = query.TryGetValue("days", out var daysVal) ? daysVal.ToString() : null;
         var offset = query.TryGetValue("offset", out var offsetVal) ? offsetVal.ToString() : null;
+        var activityType = query.TryGetValue("activityType", out var activityTypeVal)
+            ? activityTypeVal.ToString()
+            : null;
+        activityType = string.IsNullOrWhiteSpace(activityType) ? null : activityType.Trim();
 
         var (startUtc, endUtc) = RecapRequest.ComputeDateRange(type, unit, days, offset);
 
@@ -39,7 +43,8 @@ public static class RecapExtensions
         {
             Authentication = authentication,
             StartUtc = startUtc,
-            EndUtc = endUtc
+            EndUtc = endUtc,
+            ActivityType = activityType
         };
     }
 
@@ -94,6 +99,7 @@ public static class RecapExtensions
             .GroupBy(a => a.SportType ?? a.Type ?? "Other")
             .Select(g => new Entities.ActivityBreakdown(
                 Type: g.Key,
+                Activities: g.Count(),
                 DistanceM: g.Sum(a => a.Distance),
                 MovingTimeSec: g.Sum(a => a.MovingTime),
                 ElevationM: g.Sum(a => a.TotalElevationGain)
@@ -123,6 +129,7 @@ public static class RecapExtensions
         return new ActivityBreakdownDto
         {
             Type = breakdown.Type,
+            Activities = breakdown.Activities,
             DistanceM = breakdown.DistanceM,
             MovingTimeSec = breakdown.MovingTimeSec,
             ElevationM = breakdown.ElevationM

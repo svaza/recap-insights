@@ -34,6 +34,137 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
+.recap-activity-filter-panel {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.42rem;
+    padding: 0.68rem 0.74rem;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.recap-activity-filter {
+    width: min(340px, 100%);
+}
+
+.recap-activity-filter__label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ath-text-muted);
+}
+
+.recap-activity-filter__toggle.btn {
+    border: 1px solid var(--ath-border-strong);
+    color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    padding: 0.34rem 0.58rem;
+    min-width: 100%;
+    text-align: left;
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recap-activity-filter__toggle.btn:hover,
+.recap-activity-filter__toggle.btn:focus-visible {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.recap-activity-filter__toggle.btn.show {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.recap-activity-filter__menu.dropdown-menu {
+    width: 100%;
+    margin-top: 0.3rem;
+    border: 1px solid var(--ath-border-strong);
+    border-radius: 0.38rem;
+    background: var(--ath-surface-raised);
+    padding: 0.24rem;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+}
+
+.recap-activity-filter__item.dropdown-item {
+    border-radius: 0.3rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ath-text-muted);
+    padding: 0.34rem 0.46rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-activity-filter__item.dropdown-item:hover,
+.recap-activity-filter__item.dropdown-item:focus-visible {
+    color: var(--ath-text);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.recap-activity-filter__item.dropdown-item.active,
+.recap-activity-filter__item.dropdown-item:active {
+    color: var(--ath-text);
+    background: rgba(196, 112, 90, 0.22);
+}
+
+.recap-activity-filter__hint {
+    margin-top: 0.42rem;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--ath-text-dim);
+}
+
+.recap-activity-filter__loading {
+    margin-top: 0.48rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.48rem;
+    border: 1px solid rgba(122, 140, 110, 0.35);
+    border-radius: 0.32rem;
+    padding: 0.28rem 0.42rem;
+    background: rgba(122, 140, 110, 0.08);
+}
+
+.recap-activity-filter__loading-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ath-text-muted);
+}
+
+.recap-activity-filter__loading-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 12px;
+}
+
+.recap-activity-filter__loading-bar {
+    width: 3px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--ath-sage);
+    opacity: 0.75;
+    animation: recapFilterBars 900ms ease-in-out infinite;
+}
+
+.recap-activity-filter__loading-bar:nth-child(2) {
+    animation-delay: 120ms;
+}
+
+.recap-activity-filter__loading-bar:nth-child(3) {
+    animation-delay: 240ms;
+}
+
 /* ─── Recap Card ─── */
 .recap-card {
     background: var(--ath-surface);
@@ -77,6 +208,14 @@
     border-color: var(--ath-border-strong);
 }
 
+.recap-stat__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.45rem;
+    margin-bottom: 0.4rem;
+}
+
 .recap-stat__label {
     font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 0.68rem;
@@ -84,7 +223,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--ath-text-muted);
-    margin-bottom: 0.4rem;
+    margin-bottom: 0;
 }
 
 .recap-stat__value {
@@ -102,6 +241,37 @@
     color: var(--ath-text-dim);
     margin-top: 0.35rem;
     letter-spacing: 0.01em;
+}
+
+.recap-stat__action-wrap {
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.recap-stat__action-btn {
+    border: 1px solid rgba(196, 112, 90, 0.42);
+    color: rgba(196, 112, 90, 0.95);
+    background: rgba(196, 112, 90, 0.08);
+    border-radius: 999px;
+    width: 1.45rem;
+    height: 1.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.recap-stat__action-btn:hover {
+    border-color: rgba(212, 128, 106, 0.62);
+    color: var(--ath-accent-hover);
+    background: rgba(196, 112, 90, 0.14);
+}
+
+.recap-stat__action-icon {
+    width: 0.82rem;
+    height: 0.82rem;
+    display: block;
 }
 
 /* ─── Training Insights ─── */
@@ -139,6 +309,7 @@
     background: rgba(255, 255, 255, 0.02);
     position: relative;
     overflow: hidden;
+    height: 100%;
     transition: border-color 150ms ease, background-color 150ms ease;
 }
 
@@ -351,6 +522,152 @@
     font-weight: 500;
 }
 
+/* ─── Modal ─── */
+.recap-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(8, 10, 12, 0.72);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.recap-modal {
+    width: min(680px, 100%);
+    max-height: min(80vh, 720px);
+    overflow: auto;
+    border: 1px solid var(--ath-border-strong);
+    border-radius: 0.55rem;
+    background: var(--ath-surface);
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
+    padding: 1rem;
+}
+
+.recap-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.recap-modal__title-wrap {
+    min-width: 0;
+}
+
+.recap-modal__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.08rem;
+    line-height: 1.15;
+    font-weight: 800;
+    color: var(--ath-text);
+}
+
+.recap-modal__description {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    color: var(--ath-text-dim);
+}
+
+.recap-modal__close {
+    border: 1px solid var(--ath-border-strong);
+    color: var(--ath-text-muted);
+    background: transparent;
+    border-radius: 0.35rem;
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.32rem 0.62rem;
+    flex-shrink: 0;
+}
+
+.recap-modal__close:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--ath-text);
+}
+
+/* ─── Totals Breakdown Modal ─── */
+.recap-totals-breakdown-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.recap-totals-breakdown-item {
+    border: 1px solid var(--ath-border);
+    border-radius: 0.45rem;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 0.68rem 0.75rem;
+}
+
+.recap-totals-breakdown-item__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.4rem;
+}
+
+.recap-totals-breakdown-item__type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ath-text);
+}
+
+.recap-totals-breakdown-item__emoji {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.recap-totals-breakdown-item__value {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--ath-text-muted);
+    white-space: nowrap;
+}
+
+.recap-totals-breakdown-item__track {
+    position: relative;
+    height: 1rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+}
+
+.recap-totals-breakdown-item__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(196, 112, 90, 0.92), rgba(122, 140, 110, 0.88));
+}
+
+.recap-totals-breakdown-item__pct {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.recap-totals-breakdown-empty {
+    border: 1px dashed var(--ath-border-strong);
+    border-radius: 0.45rem;
+    padding: 0.85rem;
+    font-size: 0.8rem;
+    color: var(--ath-text-dim);
+}
+
 /* ─── FAB Buttons ─── */
 .recap-fab {
     position: fixed;
@@ -422,6 +739,24 @@
         justify-content: flex-start;
     }
 
+    .recap-activity-filter {
+        width: 100%;
+    }
+
+    .recap-modal {
+        width: 100%;
+        max-height: min(86vh, 760px);
+        padding: 0.85rem;
+    }
+
+    .recap-modal__title {
+        font-size: 0.98rem;
+    }
+
+    .recap-modal__description {
+        font-size: 0.75rem;
+    }
+
     .recap-breakdown-fab {
         right: calc(12px + env(safe-area-inset-right, 0px));
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
@@ -440,8 +775,13 @@
     .recap-breakdown-item,
     .recap-fab,
     .recap-wow-toggle,
-    .recap-breakdown-flyer-link {
+    .recap-breakdown-flyer-link,
+    .recap-stat__action-btn {
         transition: none;
+    }
+
+    .recap-activity-filter__loading-bar {
+        animation: none;
     }
 }
 
@@ -449,4 +789,16 @@
 @keyframes recapSpin {
     from { transform: none; }
     to { transform: none; }
+}
+
+@keyframes recapFilterBars {
+    0%,
+    100% {
+        height: 5px;
+        opacity: 0.45;
+    }
+    50% {
+        height: 12px;
+        opacity: 1;
+    }
 }

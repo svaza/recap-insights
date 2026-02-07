@@ -6,6 +6,7 @@ namespace strava_recap_api.Models;
 public sealed class ActivityBreakdownDto
 {
     public string Type { get; set; } = string.Empty;
+    public int Activities { get; set; }
     public double DistanceM { get; set; }
     public int MovingTimeSec { get; set; }
     public double ElevationM { get; set; }

@@ -8,6 +8,7 @@ public class RecapRequest
     public required AuthenticationRequest Authentication { get; set; }
     public DateTimeOffset StartUtc { get; set; }
     public DateTimeOffset EndUtc { get; set; }
+    public string? ActivityType { get; set; }
 
     /// <summary>
     /// Computes the date range for the recap based on query parameters.

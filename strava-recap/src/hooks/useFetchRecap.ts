@@ -2,7 +2,7 @@ import { useGetRecapQuery, type RecapData } from "../store";
 import { getProviderDisplayName } from "../utils/provider";
 
 export function useFetchRecap(queryString: string) {
-    const { data, isLoading, error: queryError } = useGetRecapQuery(queryString);
+    const { data, isLoading, isFetching, error: queryError } = useGetRecapQuery(queryString);
 
     // Determine connection state and extract data
     const isConnected = data && "connected" in data ? data.connected : null;
@@ -16,18 +16,21 @@ export function useFetchRecap(queryString: string) {
     const providerDisplayName = getProviderDisplayName(provider);
     const highlights = recapData?.highlights ?? null;
     const total = recapData?.total ?? null;
+    const availableActivityTypes = recapData?.availableActivityTypes ?? [];
     const breakdown = recapData?.breakdown ?? [];
     const range = recapData?.range ?? null;
     const activeDays = recapData?.activeDays ?? [];
 
     return {
         loading,
+        isFetching,
         connected,
         error,
         provider,
         providerDisplayName,
         highlights,
         total,
+        availableActivityTypes,
         breakdown,
         range,
         activeDays,

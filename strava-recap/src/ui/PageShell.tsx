@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ProviderBadge } from "./ProviderBadge";
 
 export type NavItem = {
@@ -27,7 +28,27 @@ export default function PageShell(props: {
     navGroups?: NavGroup[];
     providerBadge?: ProviderBadgeInfo;
 }) {
-    const hasNavControls = Boolean((props.navItems?.length ?? 0) > 0 || (props.navGroups?.length ?? 0) > 0);
+    const hasNavControls = true;
+    const [showAboutModal, setShowAboutModal] = useState(false);
+
+    useEffect(() => {
+        if (!showAboutModal) return undefined;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setShowAboutModal(false);
+            }
+        };
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [showAboutModal]);
 
     return (
         <div className="page-shell min-vh-100 d-flex flex-column">
@@ -99,6 +120,17 @@ export default function PageShell(props: {
                                     </li>
                                 );
                             })}
+
+                            <li className="nav-item w-xs-100 w-sm-100 w-md-auto">
+                                <button
+                                    type="button"
+                                    className="btn btn-sm d-flex w-100 align-items-center gap-2 page-shell__action-btn btn-outline-secondary page-shell__about-btn"
+                                    onClick={() => setShowAboutModal(true)}
+                                >
+                                    <span>🛡️</span>
+                                    <span>About</span>
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -120,7 +152,15 @@ export default function PageShell(props: {
 
             <footer className="py-3 text-center text-muted border-top page-shell__footer">
                 <div className="container">
-                    Built in Zone&nbsp;2 •{" "}
+                    Built with ❤️ in Zone&nbsp;2 •{" "}
+                    <button
+                        type="button"
+                        className="page-shell__footer-link page-shell__footer-btn"
+                        onClick={() => setShowAboutModal(true)}
+                    >
+                        About
+                    </button>{" "}
+                    •{" "}
                     <a
                         href="https://github.com/svaza/recap-insights"
                         target="_blank"
@@ -146,6 +186,83 @@ export default function PageShell(props: {
                     </a>
                 </div>
             </footer>
+
+            {showAboutModal && (
+                <div
+                    className="page-shell-about-backdrop"
+                    role="presentation"
+                    onClick={() => setShowAboutModal(false)}
+                >
+                    <section
+                        className="page-shell-about-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="about-modal-title"
+                        aria-describedby="about-modal-description"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <header className="page-shell-about-modal__header">
+                            <div>
+                                <div className="page-shell-about-modal__eyebrow">About Recap Insights</div>
+                                <h2 id="about-modal-title" className="page-shell-about-modal__title">
+                                    Privacy-first fitness recap
+                                </h2>
+                                <p id="about-modal-description" className="page-shell-about-modal__desc">
+                                    Recap Insights connects to your provider in read-only mode and builds recap views from your activity data.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="page-shell-about-modal__close"
+                                onClick={() => setShowAboutModal(false)}
+                            >
+                                Close
+                            </button>
+                        </header>
+
+                        <div className="page-shell-about-modal__content">
+                            <article className="page-shell-about-modal__card">
+                                <h3>How access works</h3>
+                                <ul>
+                                    <li>You explicitly connect Strava or Intervals.icu via OAuth.</li>
+                                    <li>The app requests read-only scopes for activity data.</li>
+                                    <li>The app never posts or edits anything in your provider account.</li>
+                                </ul>
+                            </article>
+
+                            <article className="page-shell-about-modal__card">
+                                <h3>Where your data lives</h3>
+                                <ul>
+                                    <li>Recap metrics are stored on your browser (Local Storage) for faster loading.</li>
+                                    <li>Activity/recap data is not stored server-side.</li>
+                                    <li>Access tokens are kept in secure HTTP-only cookies.</li>
+                                </ul>
+                            </article>
+
+                            <article className="page-shell-about-modal__card">
+                                <h3>Your controls</h3>
+                                <ul>
+                                    <li>Disconnect to remove token cookies.</li>
+                                    <li>Clear browser site data to remove local recap cache.</li>
+                                    <li>Revoke app access anytime from provider settings.</li>
+                                </ul>
+                            </article>
+                        </div>
+
+                        <div className="page-shell-about-modal__footer">
+                            <a href="/privacy" className="page-shell-about-modal__link">Privacy policy</a>
+                            <a
+                                href="https://github.com/svaza/recap-insights/issues"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="page-shell-about-modal__link"
+                            >
+                                Questions or suggestions
+                            </a>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

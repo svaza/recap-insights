@@ -48,7 +48,21 @@ public sealed class RecapFunction
         }
 
         // 5) Compute totals and breakdown
-        var activities = activitiesResult.Activities!;
+        var allActivities = activitiesResult.Activities!;
+        var availableActivityTypes = allActivities
+            .ToBreakdown()
+            .Select(b => b.Type)
+            .ToList();
+
+        var activities = string.IsNullOrWhiteSpace(recapRequest.ActivityType)
+            ? allActivities
+            : allActivities
+                .Where(a => string.Equals(
+                    a.SportType ?? a.Type ?? "Other",
+                    recapRequest.ActivityType,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
         var total = activities.ToTotal().ToDto();
         var breakdown = activities.ToBreakdown().Select(b => b.ToDto()).ToList();
         var activeDays = activities.ToActiveDays();
@@ -64,6 +78,7 @@ public sealed class RecapFunction
                 EndUtc = recapRequest.EndUtc.UtcDateTime.ToString("o")
             },
             Total = total,
+            AvailableActivityTypes = availableActivityTypes,
             Breakdown = breakdown,
             ActiveDays = activeDays,
             Highlights = highlights

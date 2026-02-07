@@ -5,6 +5,7 @@ namespace strava_recap_api.Entities;
 /// </summary>
 public record ActivityBreakdown(
     string Type,
+    int Activities,
     double DistanceM,
     int MovingTimeSec,
     double ElevationM);

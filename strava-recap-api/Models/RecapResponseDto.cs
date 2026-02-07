@@ -9,6 +9,7 @@ public sealed class RecapResponseDto
     public string? Provider { get; set; }
     public RecapRangeDto Range { get; set; } = null!;
     public ActivityTotalDto Total { get; set; } = null!;
+    public List<string> AvailableActivityTypes { get; set; } = new();
     public List<ActivityBreakdownDto> Breakdown { get; set; } = new();
     public HashSet<string> ActiveDays { get; set; } = new();
     public RecapHighlightsDto Highlights { get; set; } = null!;

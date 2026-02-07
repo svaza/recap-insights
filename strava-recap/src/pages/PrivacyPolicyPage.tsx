@@ -16,8 +16,13 @@ export default function PrivacyPolicyPage() {
                             </p>
                             <p className="text-secondary mb-4">
                                 <strong>Contact:</strong>{" "}
-                                <a href="mailto:vazasantosh@gmail.com" className="text-decoration-none">
-                                    vazasantosh@gmail.com
+                                <a
+                                    href="https://github.com/svaza/recap-insights/issues"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-decoration-none"
+                                >
+                                    GitHub Issues
                                 </a>
                             </p>
 
@@ -213,9 +218,14 @@ export default function PrivacyPolicyPage() {
                                     </li>
                                 </ul>
                                 <p>
-                                    If you need help with deletion or revocation steps, contact:{" "}
-                                    <a href="mailto:vazasantosh@gmail.com" className="text-decoration-none">
-                                        vazasantosh@gmail.com
+                                    If you need help with deletion or revocation steps, create a GitHub issue:{" "}
+                                    <a
+                                        href="https://github.com/svaza/recap-insights/issues"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-decoration-none"
+                                    >
+                                        github.com/svaza/recap-insights/issues
                                     </a>
                                     .
                                 </p>
@@ -250,9 +260,14 @@ export default function PrivacyPolicyPage() {
                             <section className="mb-4">
                                 <h2 className="h4 mb-3">13) Contact</h2>
                                 <p>
-                                    Questions or requests:{" "}
-                                    <a href="mailto:vazasantosh@gmail.com" className="text-decoration-none">
-                                        vazasantosh@gmail.com
+                                    For questions and suggestions, create a GitHub issue:{" "}
+                                    <a
+                                        href="https://github.com/svaza/recap-insights/issues"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-decoration-none"
+                                    >
+                                        github.com/svaza/recap-insights/issues
                                     </a>
                                 </p>
                             </section>

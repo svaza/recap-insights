@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams, Link } from "react-router-dom";
 
 import { parseRecapQuery } from "../utils/recapQuery";
@@ -17,6 +17,8 @@ import "./RecapPage.css";
 import WowGrid from "../ui/WowGrid";
 import type { WowItem } from "../ui/WowItemCard";
 import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
+import BreakdownActionButton from "../ui/BreakdownActionButton";
+import TotalsBreakdownModal, { type TotalsBreakdownItem } from "../ui/TotalsBreakdownModal";
 
 type UnitSystem = "km" | "mi";
 type TrainingInsightTone = "up" | "steady" | "caution";
@@ -36,6 +38,16 @@ type TrainingInsight = {
 type TrainingInsightsSection = {
     summary: string;
     cards: TrainingInsight[];
+};
+
+type TotalsBreakdownMetric = "activities" | "distance" | "time" | "elevation";
+
+type TotalsBreakdownModalConfig = {
+    sectionLabel: string;
+    title: string;
+    description: string;
+    items: TotalsBreakdownItem[];
+    emptyMessage: string;
 };
 
 const EIFFEL_TOWER_M = 324;
@@ -60,6 +72,9 @@ const AVG_SESSION_MIN_ACTIVITIES = 2;
 const DOMINANT_SHARE_MIN_PCT = 40;
 const BUSIEST_WEEK_MIN_DAYS = 3;
 const DEFAULT_TOP_WOW_COUNT = 3;
+const TOTALS_BREAKDOWN_DIALOG_ID = "totals-breakdown-dialog";
+const ACTIVITY_TYPE_STORAGE_KEY = "recap.activityType";
+const ALL_ACTIVITIES_FILTER_VALUE = "__all__";
 
 // Base importance by wow type. Final ranking also includes data magnitude per card.
 const WOW_TYPE_WEIGHTS: Record<string, number> = {
@@ -165,6 +180,13 @@ function formatActivityPace(
     return `${formatPace(paceSecPerMi)} /mi`;
 }
 
+function formatActivityTypeName(type: string): string {
+    return type
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 function formatShortDateRange(start: string, end: string) {
     const startDate = new Date(`${start}T00:00:00`);
     const endDate = new Date(`${end}T00:00:00`);
@@ -208,6 +230,17 @@ function computeBestSevenDayWindow(activeDayKeys: string[]) {
 function pct(value: number, total: number): number {
     if (!isFinite(value) || !isFinite(total) || total <= 0) return 0;
     return (value / total) * 100;
+}
+
+function clampPct(value: number): number {
+    if (!isFinite(value)) return 0;
+    return Math.max(0, Math.min(100, value));
+}
+
+function formatShareLabel(rawPct: number): string {
+    if (!isFinite(rawPct) || rawPct <= 0) return "0%";
+    if (rawPct < 1) return "<1%";
+    return `${Math.round(rawPct)}%`;
 }
 
 function parseDurationMinutes(text: string): number | null {
@@ -301,7 +334,16 @@ export default function RecapPage() {
 
     const query = useMemo(() => parseRecapQuery(searchParams), [searchParams]);
     const { athleteProfile } = useAthleteProfile();
-    const { loading, connected, error, providerDisplayName, highlights, total, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
+    const { loading, isFetching, connected, error, providerDisplayName, highlights, total, availableActivityTypes, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
+    const selectedActivityType = useMemo(() => {
+        const raw = searchParams.get("activityType");
+        if (!raw) return null;
+        const trimmed = raw.trim();
+        return trimmed ? trimmed : null;
+    }, [searchParams]);
+    const hasActivityTypeFilter = availableActivityTypes.length > 1;
+    const showTotalsBreakdownActions = !selectedActivityType;
+    const showOverallTrainingInsights = !selectedActivityType;
 
     const [units, setUnits] = useState<UnitSystem>(() => {
         const v = localStorage.getItem("recap.units");
@@ -310,8 +352,13 @@ export default function RecapPage() {
     const [showAllWow, setShowAllWow] = useState(false);
     const [showBreakdownFab, setShowBreakdownFab] = useState(false);
     const [showWowFab, setShowWowFab] = useState(false);
+    const [activeTotalsBreakdown, setActiveTotalsBreakdown] = useState<TotalsBreakdownMetric | null>(null);
+    const [isActivityFilterMenuOpen, setIsActivityFilterMenuOpen] = useState(false);
+    const [pendingActivityFilter, setPendingActivityFilter] = useState<string | null>(null);
     const breakdownRef = useRef<HTMLDivElement | null>(null);
     const wowHeaderRef = useRef<HTMLDivElement | null>(null);
+    const activityFilterDropdownRef = useRef<HTMLDivElement | null>(null);
+    const isTotalsBreakdownOpen = activeTotalsBreakdown !== null;
 
     useEffect(() => {
         localStorage.setItem("recap.units", units);
@@ -322,6 +369,134 @@ export default function RecapPage() {
             navigate("/select", { replace: true });
         }
     }, [query, navigate]);
+
+    const setActivityTypeFilter = useCallback((nextType: string | null, replace = false) => {
+        const normalized = nextType?.trim() ? nextType.trim() : null;
+        const currentRaw = searchParams.get("activityType");
+        const current = currentRaw?.trim() ? currentRaw.trim() : null;
+        if (current === normalized) return;
+
+        const params = new URLSearchParams(searchParams);
+        if (normalized) {
+            params.set("activityType", normalized);
+        } else {
+            params.delete("activityType");
+        }
+
+        const nextSearch = params.toString();
+        navigate(
+            {
+                pathname: location.pathname,
+                search: nextSearch ? `?${nextSearch}` : "",
+            },
+            { replace }
+        );
+    }, [location.pathname, navigate, searchParams]);
+
+    useEffect(() => {
+        if (selectedActivityType) {
+            localStorage.setItem(ACTIVITY_TYPE_STORAGE_KEY, selectedActivityType);
+        } else {
+            localStorage.removeItem(ACTIVITY_TYPE_STORAGE_KEY);
+        }
+    }, [selectedActivityType]);
+
+    useEffect(() => {
+        if (!query || selectedActivityType) return;
+        const storedType = localStorage.getItem(ACTIVITY_TYPE_STORAGE_KEY)?.trim();
+        if (!storedType) return;
+        setActivityTypeFilter(storedType, true);
+    }, [query, selectedActivityType, setActivityTypeFilter]);
+
+    useEffect(() => {
+        if (!total || !selectedActivityType) return;
+
+        if (availableActivityTypes.length <= 1) {
+            setActivityTypeFilter(null, true);
+            return;
+        }
+
+        const selectedNormalized = selectedActivityType.toLowerCase();
+        const isValid = availableActivityTypes.some(
+            (type) => type.toLowerCase() === selectedNormalized
+        );
+
+        if (!isValid) {
+            setActivityTypeFilter(null, true);
+        }
+    }, [availableActivityTypes, selectedActivityType, setActivityTypeFilter, total]);
+
+    useEffect(() => {
+        if (!hasActivityTypeFilter) {
+            setIsActivityFilterMenuOpen(false);
+        }
+    }, [hasActivityTypeFilter]);
+
+    useEffect(() => {
+        if (!pendingActivityFilter) return undefined;
+        if (loading || isFetching) return undefined;
+
+        const timeout = window.setTimeout(() => {
+            setPendingActivityFilter(null);
+        }, 220);
+
+        return () => window.clearTimeout(timeout);
+    }, [isFetching, loading, pendingActivityFilter]);
+
+    useEffect(() => {
+        if (selectedActivityType) {
+            setActiveTotalsBreakdown(null);
+        }
+    }, [selectedActivityType]);
+
+    useEffect(() => {
+        if (!isActivityFilterMenuOpen) return undefined;
+
+        const onDocumentMouseDown = (event: MouseEvent) => {
+            const target = event.target;
+            if (!(target instanceof Node)) return;
+            if (activityFilterDropdownRef.current?.contains(target)) return;
+            setIsActivityFilterMenuOpen(false);
+        };
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setIsActivityFilterMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", onDocumentMouseDown);
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", onDocumentMouseDown);
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [isActivityFilterMenuOpen]);
+
+    useEffect(() => {
+        if (!isTotalsBreakdownOpen) return undefined;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setActiveTotalsBreakdown(null);
+            }
+        };
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [isTotalsBreakdownOpen]);
+
+    useEffect(() => {
+        if (!total) {
+            setActiveTotalsBreakdown(null);
+        }
+    }, [total]);
 
     const connectProvider = (providerType: string = "strava") => {
         const returnTo = location.pathname + location.search;
@@ -374,12 +549,168 @@ export default function RecapPage() {
         return parts.join(" • ") || secondsToHms(info.movingTimeSec);
     };
 
+    const selectedActivityFilterLabel = useMemo(() => {
+        if (!selectedActivityType) return "All activities";
+        const matchedType =
+            availableActivityTypes.find((type) => type.toLowerCase() === selectedActivityType.toLowerCase()) ??
+            selectedActivityType;
+        return `${getActivityEmoji(matchedType)} ${formatActivityTypeName(matchedType)}`;
+    }, [availableActivityTypes, selectedActivityType]);
+    const isActivityFilterLoading = pendingActivityFilter !== null;
+
+    const selectActivityTypeFromMenu = (nextType: string | null) => {
+        const normalized = nextType?.trim() ? nextType.trim() : null;
+        const current = selectedActivityType?.trim() ? selectedActivityType.trim() : null;
+        if (normalized === current) {
+            setIsActivityFilterMenuOpen(false);
+            return;
+        }
+
+        setPendingActivityFilter(normalized ?? ALL_ACTIVITIES_FILTER_VALUE);
+        setShowAllWow(false);
+        setActiveTotalsBreakdown(null);
+        setActivityTypeFilter(normalized);
+        setIsActivityFilterMenuOpen(false);
+    };
+
     const totalDays = useMemo(() => {
         if (!range) return null;
         const start = new Date(range.startUtc);
         const end = new Date(range.endUtc);
         return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY));
     }, [range]);
+
+    const distanceBreakdownItems: TotalsBreakdownItem[] = useMemo(() => {
+        if (!total || total.distanceM <= 0) return [];
+
+        return breakdown
+            .filter((item) => item.distanceM > 0)
+            .slice()
+            .sort((a, b) => b.distanceM - a.distanceM)
+            .map((item) => {
+                const rawPct = pct(item.distanceM, total.distanceM);
+                return {
+                    id: item.type,
+                    emoji: getActivityEmoji(item.type),
+                    label: getActivityDescription(item.type),
+                    valueLabel: formatters.formatDistance(item.distanceM, 1),
+                    widthPct: clampPct(rawPct),
+                    pctLabel: formatShareLabel(rawPct),
+                };
+            });
+    }, [breakdown, formatters, total]);
+
+    const activitiesBreakdownItems: TotalsBreakdownItem[] = useMemo(() => {
+        if (!total || total.activities <= 0) return [];
+
+        return breakdown
+            .filter((item) => item.activities > 0)
+            .slice()
+            .sort((a, b) => b.activities - a.activities)
+            .map((item) => {
+                const rawPct = pct(item.activities, total.activities);
+                const valueLabel = `${item.activities} ${item.activities === 1 ? "activity" : "activities"}`;
+                return {
+                    id: item.type,
+                    emoji: getActivityEmoji(item.type),
+                    label: getActivityDescription(item.type),
+                    valueLabel,
+                    widthPct: clampPct(rawPct),
+                    pctLabel: formatShareLabel(rawPct),
+                };
+            });
+    }, [breakdown, total]);
+
+    const timeBreakdownItems: TotalsBreakdownItem[] = useMemo(() => {
+        if (!total || total.movingTimeSec <= 0) return [];
+
+        return breakdown
+            .filter((item) => item.movingTimeSec > 0)
+            .slice()
+            .sort((a, b) => b.movingTimeSec - a.movingTimeSec)
+            .map((item) => {
+                const rawPct = pct(item.movingTimeSec, total.movingTimeSec);
+                return {
+                    id: item.type,
+                    emoji: getActivityEmoji(item.type),
+                    label: getActivityDescription(item.type),
+                    valueLabel: secondsToHms(item.movingTimeSec),
+                    widthPct: clampPct(rawPct),
+                    pctLabel: formatShareLabel(rawPct),
+                };
+            });
+    }, [breakdown, total]);
+
+    const elevationBreakdownItems: TotalsBreakdownItem[] = useMemo(() => {
+        if (!total || total.elevationM <= 0) return [];
+
+        return breakdown
+            .filter((item) => item.elevationM > 0)
+            .slice()
+            .sort((a, b) => b.elevationM - a.elevationM)
+            .map((item) => {
+                const rawPct = pct(item.elevationM, total.elevationM);
+                return {
+                    id: item.type,
+                    emoji: getActivityEmoji(item.type),
+                    label: getActivityDescription(item.type),
+                    valueLabel: formatters.formatElevation(item.elevationM),
+                    widthPct: clampPct(rawPct),
+                    pctLabel: formatShareLabel(rawPct),
+                };
+            });
+    }, [breakdown, formatters, total]);
+
+    const activeTotalsBreakdownConfig: TotalsBreakdownModalConfig | null = useMemo(() => {
+        if (!total || !activeTotalsBreakdown) return null;
+
+        if (activeTotalsBreakdown === "activities") {
+            return {
+                sectionLabel: "Totals · Activities breakdown",
+                title: `${total.activities} total activities`,
+                description: `Activity-type contribution for ${rangeLabel}`,
+                items: activitiesBreakdownItems,
+                emptyMessage: "No activity-count data available in this range.",
+            };
+        }
+
+        if (activeTotalsBreakdown === "distance") {
+            return {
+                sectionLabel: "Totals · Distance breakdown",
+                title: `${formatters.formatDistance(total.distanceM, 1)} total`,
+                description: `Activity-type contribution for ${rangeLabel}`,
+                items: distanceBreakdownItems,
+                emptyMessage: "No distance data available in this range.",
+            };
+        }
+
+        if (activeTotalsBreakdown === "time") {
+            return {
+                sectionLabel: "Totals · Time breakdown",
+                title: `${secondsToHms(total.movingTimeSec)} total moving time`,
+                description: `Activity-type contribution for ${rangeLabel}`,
+                items: timeBreakdownItems,
+                emptyMessage: "No moving-time data available in this range.",
+            };
+        }
+
+        return {
+            sectionLabel: "Totals · Elevation breakdown",
+            title: `${formatters.formatElevation(total.elevationM)} total elevation`,
+            description: `Activity-type contribution for ${rangeLabel}`,
+            items: elevationBreakdownItems,
+            emptyMessage: "No elevation data available in this range.",
+        };
+    }, [
+        activeTotalsBreakdown,
+        activitiesBreakdownItems,
+        distanceBreakdownItems,
+        elevationBreakdownItems,
+        formatters,
+        rangeLabel,
+        timeBreakdownItems,
+        total,
+    ]);
 
     const trainingInsights: TrainingInsightsSection | null = useMemo(() => {
         if (!total) return null;
@@ -1129,21 +1460,88 @@ export default function RecapPage() {
                     )}
 
                     {total && (
-                        <div className="recap-card mb-4">
-                            <div className="p-3 p-md-4">
-                                <div>
-                                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                                        <div className="recap-section-label">
-                                            Totals · {headerTitle}
-                                        </div>
-                                        <div className="recap-range-label">{rangeLabel}</div>
+                        <>
+                            {hasActivityTypeFilter && (
+                                <div className="recap-activity-filter-panel mb-3">
+                                    <div className="recap-activity-filter__label">Activity filter</div>
+                                    <div
+                                        ref={activityFilterDropdownRef}
+                                        className="dropdown recap-activity-filter mt-2"
+                                    >
+                                        <button
+                                            type="button"
+                                            className={`btn dropdown-toggle recap-activity-filter__toggle ${isActivityFilterMenuOpen ? "show" : ""}`}
+                                            aria-expanded={isActivityFilterMenuOpen}
+                                            aria-label="Choose activity type filter"
+                                            onClick={() => setIsActivityFilterMenuOpen((prev) => !prev)}
+                                        >
+                                            {selectedActivityFilterLabel}
+                                        </button>
+                                        <ul className={`dropdown-menu recap-activity-filter__menu ${isActivityFilterMenuOpen ? "show" : ""}`}>
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    className={`dropdown-item recap-activity-filter__item ${selectedActivityType ? "" : "active"}`}
+                                                    onClick={() => selectActivityTypeFromMenu(null)}
+                                                >
+                                                    All activities
+                                                </button>
+                                            </li>
+                                            {availableActivityTypes.map((type) => (
+                                                <li key={type}>
+                                                    <button
+                                                        type="button"
+                                                        className={`dropdown-item recap-activity-filter__item ${selectedActivityType?.toLowerCase() === type.toLowerCase() ? "active" : ""}`}
+                                                        onClick={() => selectActivityTypeFromMenu(type)}
+                                                    >
+                                                        {`${getActivityEmoji(type)} ${formatActivityTypeName(type)}`}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
+                                    <p className="recap-activity-filter__hint mb-0">
+                                        Pick a sport to focus on that activity only. Use “All activities” to return to your full recap.
+                                    </p>
+                                    {isActivityFilterLoading && (
+                                        <div className="recap-activity-filter__loading" role="status" aria-live="polite">
+                                            <span className="recap-activity-filter__loading-label">
+                                                Rebuilding recap for your selection
+                                            </span>
+                                            <span className="recap-activity-filter__loading-bars" aria-hidden="true">
+                                                <span className="recap-activity-filter__loading-bar" />
+                                                <span className="recap-activity-filter__loading-bar" />
+                                                <span className="recap-activity-filter__loading-bar" />
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="recap-card mb-4">
+                                <div className="p-3 p-md-4">
+                                    <div>
+                                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                            <div className="recap-section-label">
+                                                Totals · {headerTitle}
+                                            </div>
+                                            <div className="recap-range-label">{rangeLabel}</div>
+                                        </div>
                                     <div className="row g-3">
                                         <div className="col-6 col-md-3">
                                             <Stat
                                                 label="🎯 Activities"
                                                 value={String(total.activities)}
                                                 subLabel={totalDays ? `${num(total.activities / totalDays, 1)} avg/day` : undefined}
+                                                action={
+                                                    showTotalsBreakdownActions && activitiesBreakdownItems.length > 0 ? (
+                                                        <BreakdownActionButton
+                                                            dialogId={TOTALS_BREAKDOWN_DIALOG_ID}
+                                                            label="Show activities breakdown"
+                                                            onClick={() => setActiveTotalsBreakdown("activities")}
+                                                        />
+                                                    ) : undefined
+                                                }
                                             />
                                         </div>
                                         <div className="col-6 col-md-3">
@@ -1151,6 +1549,15 @@ export default function RecapPage() {
                                                 label="📏 Distance"
                                                 value={formatters.formatDistance(total.distanceM, 1)}
                                                 subLabel={totalDays ? `${formatters.formatDistance(total.distanceM / totalDays, 1)} avg/day` : undefined}
+                                                action={
+                                                    showTotalsBreakdownActions && distanceBreakdownItems.length > 0 ? (
+                                                        <BreakdownActionButton
+                                                            dialogId={TOTALS_BREAKDOWN_DIALOG_ID}
+                                                            label="Show distance breakdown"
+                                                            onClick={() => setActiveTotalsBreakdown("distance")}
+                                                        />
+                                                    ) : undefined
+                                                }
                                             />
                                         </div>
                                         <div className="col-6 col-md-3">
@@ -1158,6 +1565,15 @@ export default function RecapPage() {
                                                 label="⏱️ Time"
                                                 value={secondsToHms(total.movingTimeSec)}
                                                 subLabel={totalDays ? `${secondsToHms(Math.round(total.movingTimeSec / totalDays))} avg/day` : undefined}
+                                                action={
+                                                    showTotalsBreakdownActions && timeBreakdownItems.length > 0 ? (
+                                                        <BreakdownActionButton
+                                                            dialogId={TOTALS_BREAKDOWN_DIALOG_ID}
+                                                            label="Show time breakdown"
+                                                            onClick={() => setActiveTotalsBreakdown("time")}
+                                                        />
+                                                    ) : undefined
+                                                }
                                             />
                                         </div>
                                         <div className="col-6 col-md-3">
@@ -1165,14 +1581,23 @@ export default function RecapPage() {
                                                 label="⛰️ Elevation"
                                                 value={formatters.formatElevation(total.elevationM)}
                                                 subLabel={totalDays ? `${formatters.formatElevation(total.elevationM / totalDays)} avg/day` : undefined}
+                                                action={
+                                                    showTotalsBreakdownActions && elevationBreakdownItems.length > 0 ? (
+                                                        <BreakdownActionButton
+                                                            dialogId={TOTALS_BREAKDOWN_DIALOG_ID}
+                                                            label="Show elevation breakdown"
+                                                            onClick={() => setActiveTotalsBreakdown("elevation")}
+                                                        />
+                                                    ) : undefined
+                                                }
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                {trainingInsights && (
+                                {showOverallTrainingInsights && trainingInsights && (
                                     <div className="mt-4">
-                                        <div className="recap-section-label mb-2">Training insights</div>
+                                        <div className="recap-section-label mb-2">Overall training insights</div>
                                         <div className="recap-training-trend">
                                             <div className="recap-training-trend__label">Training trend</div>
                                             <div className="recap-training-trend__value">{trainingInsights.summary}</div>
@@ -1277,10 +1702,24 @@ export default function RecapPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
+
+            {total && activeTotalsBreakdownConfig && (
+                <TotalsBreakdownModal
+                    open={true}
+                    dialogId={TOTALS_BREAKDOWN_DIALOG_ID}
+                    sectionLabel={activeTotalsBreakdownConfig.sectionLabel}
+                    title={activeTotalsBreakdownConfig.title}
+                    description={activeTotalsBreakdownConfig.description}
+                    items={activeTotalsBreakdownConfig.items}
+                    emptyMessage={activeTotalsBreakdownConfig.emptyMessage}
+                    onClose={() => setActiveTotalsBreakdown(null)}
+                />
+            )}
 
             {total && (showBreakdownFab || showWowFab) && (
                 <>

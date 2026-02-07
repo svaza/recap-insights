@@ -29,6 +29,15 @@ type ActivityTotal = {
 
 type ActivityBreakdown = {
     type: string;
+    activities: number;
+    distanceM: number;
+    movingTimeSec: number;
+    elevationM: number;
+};
+
+type ActivityBreakdownApi = {
+    type: string;
+    activities?: number;
     distanceM: number;
     movingTimeSec: number;
     elevationM: number;
@@ -75,7 +84,7 @@ type RecapHighlights = {
 
 type RecapApiResponseFlat =
     | { connected: false }
-    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; breakdown: ActivityBreakdown[]; activeDays: string[]; highlights: RecapHighlights }
+    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; availableActivityTypes?: string[]; breakdown: ActivityBreakdownApi[]; activeDays: string[]; highlights: RecapHighlights }
     | { connected: true; error: string };
 
 export type RecapData = {
@@ -83,6 +92,7 @@ export type RecapData = {
     provider: ProviderType;
     range: RecapRange;
     total: ActivityTotal;
+    availableActivityTypes: string[];
     breakdown: ActivityBreakdown[];
     activeDays: string[];
     highlights: RecapHighlights;
@@ -98,7 +108,32 @@ export type ProfileData = {
 
 const PROFILE_CACHE_KEY = "recapcache:profile";
 const PROVIDER_CACHE_KEY = "recapcache:provider";
-const RECAP_CACHE_KEY = "recapcache:activities-summary";
+const RECAP_CACHE_KEY = "recapcache:activities-summary:v3";
+
+function normalizeBreakdown(items: Array<ActivityBreakdownApi | ActivityBreakdown>): ActivityBreakdown[] {
+    return items.map((item) => ({
+        type: item.type,
+        activities: typeof item.activities === "number" ? item.activities : 0,
+        distanceM: item.distanceM,
+        movingTimeSec: item.movingTimeSec,
+        elevationM: item.elevationM,
+    }));
+}
+
+function normalizeAvailableActivityTypes(items: string[] | undefined, fallbackBreakdown: ActivityBreakdown[]): string[] {
+    const source = items ?? fallbackBreakdown.map((item) => item.type);
+    const seen = new Set<string>();
+    const output: string[] = [];
+
+    for (const value of source) {
+        const normalized = String(value ?? "").trim();
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        output.push(normalized);
+    }
+
+    return output;
+}
 
 // ============ API Slice ============
 
@@ -168,7 +203,14 @@ export const api = createApi({
                 const cachedData = getFromStorage<RecapData>(RECAP_CACHE_KEY, queryString);
                 
                 if (cachedData) {
-                    return { data: cachedData };
+                    const normalizedBreakdown = normalizeBreakdown(cachedData.breakdown);
+                    return {
+                        data: {
+                            ...cachedData,
+                            breakdown: normalizedBreakdown,
+                            availableActivityTypes: normalizeAvailableActivityTypes(cachedData.availableActivityTypes, normalizedBreakdown),
+                        },
+                    };
                 }
 
                 // Fetch from API
@@ -189,12 +231,14 @@ export const api = createApi({
                     return { data: { connected: true, error: data.error } };
                 }
 
+                const normalizedBreakdown = normalizeBreakdown(data.breakdown);
                 const recapData: RecapData = {
                     connected: true,
                     provider: parseProviderType(data.provider),
                     range: data.range,
                     total: data.total,
-                    breakdown: data.breakdown,
+                    availableActivityTypes: normalizeAvailableActivityTypes(data.availableActivityTypes, normalizedBreakdown),
+                    breakdown: normalizedBreakdown,
                     activeDays: data.activeDays,
                     highlights: data.highlights,
                 };

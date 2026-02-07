@@ -1,9 +1,27 @@
 import type { WowItem } from "../WowItemCard";
+import { getActivityEmoji } from "../../utils/activityTypes";
 import "./wowUnifiedCard.css";
 
+function formatActivityTypeLabel(type: string): string {
+    return type
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 export default function WowUnifiedCard({ item }: { item: WowItem }) {
+    const activityTypeBadge = item.activityType
+        ? `${getActivityEmoji(item.activityType)} ${formatActivityTypeLabel(item.activityType)}`
+        : null;
+
     return (
         <div className="wow-u">
+            {activityTypeBadge && (
+                <div className="wow-u__activity-type" title={activityTypeBadge}>
+                    {activityTypeBadge}
+                </div>
+            )}
+
             <div className="wow-u__emoji" title={item.title}>
                 {item.emoji}
             </div>

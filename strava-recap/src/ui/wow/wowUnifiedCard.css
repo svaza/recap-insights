@@ -9,6 +9,27 @@
     width: 100%;
     box-sizing: border-box;
     font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    position: relative;
+}
+
+.wow-u__activity-type {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    max-width: calc(100% - 20px);
+    padding: 0.2rem 0.42rem;
+    border-radius: 0.28rem;
+    border: 1px solid var(--ath-border, rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--ath-text-muted, #9a9590);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ─── Emoji badge ─── */
@@ -112,6 +133,12 @@
     .wow-u {
         padding: 16px 12px;
         gap: 10px;
+    }
+
+    .wow-u__activity-type {
+        top: 8px;
+        left: 8px;
+        max-width: calc(100% - 16px);
     }
 
     .wow-u__emoji {
