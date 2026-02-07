@@ -7,6 +7,7 @@ import { possessive } from "../utils/helper";
 import { useAthleteProfile } from "../hooks/useAthleteProfile";
 import PageShell from "../ui/PageShell";
 import type { ProviderBadgeInfo } from "../ui/PageShell";
+import { useReleaseNotesDialog } from "../context/ReleaseNotesDialogContext";
 import "./SelectPage.css";
 
 type PeriodOption = {
@@ -58,6 +59,7 @@ export default function SelectPage() {
     const [searchParams] = useSearchParams();
     const [selectedId, setSelectedId] = useState(() => resolveInitialPeriod(searchParams));
     const { athleteProfile, connected, providerDisplayName } = useAthleteProfile();
+    const { openReleaseNotes } = useReleaseNotesDialog();
 
     const selected = useMemo(
         () => PERIOD_OPTIONS.find((x) => x.id === selectedId) ?? PERIOD_OPTIONS[0],
@@ -198,7 +200,17 @@ export default function SelectPage() {
                     <div className="select-page__footer">
                         <p className="select-privacy-note mb-0">
                             We use read-only activity access, store recap summaries only in your browser, and do not process GPS routes.
-                            <Link to="/privacy">Privacy Policy</Link>
+                            <span className="select-privacy-note__links">
+                                <Link to="/privacy">Privacy Policy</Link>
+                                <span aria-hidden="true">·</span>
+                                <button
+                                    type="button"
+                                    className="select-privacy-note__link-btn"
+                                    onClick={openReleaseNotes}
+                                >
+                                    Release Notes
+                                </button>
+                            </span>
                         </p>
                     </div>
                 </div>

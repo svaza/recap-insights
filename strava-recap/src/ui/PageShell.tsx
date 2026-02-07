@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ProviderBadge } from "./ProviderBadge";
+import { CURRENT_APP_VERSION } from "../config/releases";
+import { useReleaseNotesDialog } from "../context/ReleaseNotesDialogContext";
 
 export type NavItem = {
     id: string;
@@ -30,6 +32,7 @@ export default function PageShell(props: {
 }) {
     const hasExtraNavControls = (props.navItems && props.navItems.length > 0) || (props.navGroups && props.navGroups.length > 0);
     const [showAboutModal, setShowAboutModal] = useState(false);
+    const { openReleaseNotes } = useReleaseNotesDialog();
 
     useEffect(() => {
         if (!showAboutModal) return undefined;
@@ -201,6 +204,13 @@ export default function PageShell(props: {
                             <a href="/privacy" className="page-shell__footer-link">
                                 Privacy
                             </a>
+                            <button
+                                type="button"
+                                className="page-shell__footer-link page-shell__footer-link--btn"
+                                onClick={openReleaseNotes}
+                            >
+                                Release Notes
+                            </button>
                             <a
                                 href="https://github.com/svaza/recap-insights"
                                 target="_blank"
@@ -219,7 +229,7 @@ export default function PageShell(props: {
                             </a>
                         </div>
                         <div className="page-shell__footer-meta">
-                            Built with ❤️ in Zone 2
+                            Built with ❤️ in Zone 2 · v{CURRENT_APP_VERSION}
                         </div>
                     </div>
                 </div>
@@ -334,6 +344,17 @@ export default function PageShell(props: {
                                 <a href="/privacy" className="page-shell-about-modal__link">
                                     Privacy Policy
                                 </a>
+                                <span className="page-shell-about-modal__footer-dot">·</span>
+                                <button
+                                    type="button"
+                                    className="page-shell-about-modal__link page-shell-about-modal__link--btn"
+                                    onClick={() => {
+                                        setShowAboutModal(false);
+                                        openReleaseNotes();
+                                    }}
+                                >
+                                    Release Notes
+                                </button>
                                 <span className="page-shell-about-modal__footer-dot">·</span>
                                 <a
                                     href="https://github.com/svaza/recap-insights"

@@ -1,0 +1,292 @@
+.release-notes-modal {
+    width: min(840px, 100%);
+    max-height: min(90vh, 920px);
+    padding: 1.2rem;
+}
+
+.release-notes-modal__header {
+    text-align: center;
+    margin-bottom: 1rem;
+    padding: 0.1rem 1.75rem 0.95rem;
+    border-bottom: 1px solid var(--ath-border);
+}
+
+.release-notes-modal__kicker {
+    margin: 0 0 0.4rem;
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ath-accent);
+}
+
+.release-notes-modal__title {
+    margin: 0 0 0.35rem;
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ath-text);
+}
+
+.release-notes-modal__subtitle {
+    margin: 0 0 0.6rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--ath-text-muted);
+}
+
+.release-notes-modal__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-size: 0.73rem;
+    color: var(--ath-text-dim);
+}
+
+.release-notes-modal__meta-dot {
+    opacity: 0.5;
+}
+
+.release-notes-modal__timeline {
+    border: 1px solid var(--ath-border);
+    border-radius: 8px;
+    background: rgba(196, 112, 90, 0.02);
+    padding: 0.9rem 0.8rem;
+}
+
+.release-notes-modal .release-tree,
+.release-notes-modal .release-tree__children {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+
+.release-notes-modal .release-tree {
+    padding-left: 1rem;
+}
+
+.release-notes-modal .release-tree::before,
+.release-notes-modal .release-tree__children::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--ath-border-strong);
+}
+
+.release-notes-modal .release-tree__children {
+    margin-left: 0.9rem;
+    padding-left: 0.85rem;
+    margin-bottom: 0.55rem;
+}
+
+.release-notes-modal .release-tree__item {
+    position: relative;
+    padding: 0 0 0.8rem 0.7rem;
+}
+
+.release-notes-modal .release-tree__item:last-child {
+    padding-bottom: 0;
+}
+
+.release-notes-modal .release-tree__item::before {
+    content: "";
+    position: absolute;
+    left: -0.01rem;
+    top: 0.9rem;
+    width: 0.72rem;
+    height: 1px;
+    background: var(--ath-border-strong);
+}
+
+.release-notes-modal .release-tree__item::after {
+    content: "";
+    position: absolute;
+    left: -0.24rem;
+    top: 0.7rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #8fa2b6;
+    border: 2px solid var(--ath-surface);
+}
+
+.release-notes-modal .release-tree__item--major::after {
+    width: 10px;
+    height: 10px;
+    left: -0.31rem;
+    top: 0.63rem;
+    background: var(--ath-accent);
+}
+
+.release-notes-modal .release-tree__item--minor::after {
+    background: #7ea7d6;
+}
+
+.release-notes-modal .release-tree__item--patch::after {
+    background: #70b68f;
+}
+
+.release-notes-modal .release-card {
+    border: 1px solid var(--ath-border);
+    border-radius: 8px;
+    background: var(--ath-surface);
+    padding: 0.75rem 0.84rem;
+}
+
+.release-notes-modal .release-card--current {
+    border-color: rgba(196, 112, 90, 0.45);
+    box-shadow: 0 0 0 1px rgba(196, 112, 90, 0.1);
+}
+
+.release-notes-modal .release-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+}
+
+.release-notes-modal .release-card__level {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.13rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ath-text-dim);
+    border: 1px solid var(--ath-border-strong);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.release-notes-modal .release-card__level--major {
+    color: var(--ath-accent);
+    border-color: rgba(196, 112, 90, 0.36);
+    background: rgba(196, 112, 90, 0.08);
+}
+
+.release-notes-modal .release-card__level--minor {
+    color: #8fb7df;
+    border-color: rgba(143, 183, 223, 0.36);
+    background: rgba(143, 183, 223, 0.08);
+}
+
+.release-notes-modal .release-card__level--patch {
+    color: #8cc7a5;
+    border-color: rgba(140, 199, 165, 0.36);
+    background: rgba(140, 199, 165, 0.08);
+}
+
+.release-notes-modal .release-card__date {
+    font-size: 0.68rem;
+    color: var(--ath-text-dim);
+}
+
+.release-notes-modal .release-card__version {
+    margin: 0 0 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ath-text);
+}
+
+.release-notes-modal .release-card__current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.12rem 0.4rem;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ath-accent);
+    background: rgba(196, 112, 90, 0.1);
+    border: 1px solid rgba(196, 112, 90, 0.35);
+}
+
+.release-notes-modal .release-card__title {
+    margin: 0 0 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ath-text);
+}
+
+.release-notes-modal .release-card__summary {
+    margin: 0 0 0.5rem;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--ath-text-muted);
+}
+
+.release-notes-modal .release-card__list {
+    margin: 0;
+    padding-left: 0.92rem;
+    color: var(--ath-text-muted);
+    font-size: 0.73rem;
+    line-height: 1.45;
+}
+
+.release-notes-modal .release-card__list li + li {
+    margin-top: 0.24rem;
+}
+
+@media (max-width: 700px) {
+    .release-notes-modal {
+        width: 100%;
+        max-height: min(92vh, 920px);
+        padding: 1rem;
+    }
+
+    .release-notes-modal__header {
+        padding: 0.1rem 1.5rem 0.8rem;
+    }
+
+    .release-notes-modal__title {
+        font-size: 1.2rem;
+    }
+
+    .release-notes-modal__subtitle {
+        font-size: 0.76rem;
+    }
+
+    .release-notes-modal__timeline {
+        padding: 0.75rem 0.65rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .release-notes-modal .release-tree {
+        padding-left: 0.85rem;
+    }
+
+    .release-notes-modal .release-tree__children {
+        margin-left: 0.62rem;
+        padding-left: 0.62rem;
+    }
+
+    .release-notes-modal .release-tree__item {
+        padding-left: 0.64rem;
+    }
+
+    .release-notes-modal .release-card__head {
+        flex-wrap: wrap;
+    }
+
+    .release-notes-modal .release-card__version {
+        flex-wrap: wrap;
+    }
+}

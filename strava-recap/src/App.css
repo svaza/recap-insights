@@ -626,6 +626,14 @@
   transition: color 150ms ease;
 }
 
+.page-shell-about-modal__link--btn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .page-shell-about-modal__link:hover {
   color: var(--ath-text);
 }
