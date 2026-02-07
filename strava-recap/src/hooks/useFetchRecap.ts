@@ -20,6 +20,7 @@ export function useFetchRecap(queryString: string) {
     const breakdown = recapData?.breakdown ?? [];
     const range = recapData?.range ?? null;
     const activeDays = recapData?.activeDays ?? [];
+    const activityDays = recapData?.activityDays ?? [];
 
     return {
         loading,
@@ -34,5 +35,6 @@ export function useFetchRecap(queryString: string) {
         breakdown,
         range,
         activeDays,
+        activityDays,
     };
 }

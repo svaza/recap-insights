@@ -43,6 +43,30 @@ type ActivityBreakdownApi = {
     elevationM: number;
 };
 
+type RecapActivityDay = {
+    date: string;
+    activities: number;
+    distanceM: number;
+    movingTimeSec: number;
+    effortScore: number;
+    effortMetric: "distance" | "time" | "none";
+    effortValue: number;
+    effortType: string | null;
+    types: string[];
+};
+
+type RecapActivityDayApi = {
+    date: string;
+    activities?: number;
+    distanceM?: number;
+    movingTimeSec?: number;
+    effortScore?: number;
+    effortMetric?: string;
+    effortValue?: number;
+    effortType?: string | null;
+    types?: string[];
+};
+
 type RecapDaySummary = {
     date: string;
     activities: number;
@@ -84,7 +108,7 @@ type RecapHighlights = {
 
 type RecapApiResponseFlat =
     | { connected: false }
-    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; availableActivityTypes?: string[]; breakdown: ActivityBreakdownApi[]; activeDays: string[]; highlights: RecapHighlights }
+    | { connected: true; provider?: string; range: RecapRange; total: ActivityTotal; availableActivityTypes?: string[]; breakdown: ActivityBreakdownApi[]; activeDays: string[]; activityDays?: RecapActivityDayApi[]; highlights: RecapHighlights }
     | { connected: true; error: string };
 
 export type RecapData = {
@@ -95,6 +119,7 @@ export type RecapData = {
     availableActivityTypes: string[];
     breakdown: ActivityBreakdown[];
     activeDays: string[];
+    activityDays: RecapActivityDay[];
     highlights: RecapHighlights;
 };
 
@@ -108,7 +133,7 @@ export type ProfileData = {
 
 const PROFILE_CACHE_KEY = "recapcache:profile";
 const PROVIDER_CACHE_KEY = "recapcache:provider";
-const RECAP_CACHE_KEY = "recapcache:activities-summary:v3";
+const RECAP_CACHE_KEY = "recapcache:activities-summary:v5";
 
 function normalizeBreakdown(items: Array<ActivityBreakdownApi | ActivityBreakdown>): ActivityBreakdown[] {
     return items.map((item) => ({
@@ -133,6 +158,51 @@ function normalizeAvailableActivityTypes(items: string[] | undefined, fallbackBr
     }
 
     return output;
+}
+
+function normalizeActivityDays(
+    items: Array<RecapActivityDayApi | RecapActivityDay> | undefined,
+    fallbackActiveDays: string[]
+): RecapActivityDay[] {
+    if (!Array.isArray(items) || items.length === 0) {
+        return [...new Set(fallbackActiveDays.map((day) => String(day ?? "").trim()).filter(Boolean))]
+            .sort()
+            .map((date) => ({
+                date,
+                activities: 1,
+                distanceM: 0,
+                movingTimeSec: 0,
+                effortScore: 0,
+                effortMetric: "none" as const,
+                effortValue: 0,
+                effortType: null,
+                types: [],
+            }));
+    }
+
+    return items
+        .map((item) => {
+            const date = String(item.date ?? "").trim();
+            if (!date) return null;
+
+            const types = Array.isArray(item.types)
+                ? [...new Set(item.types.map((type) => String(type ?? "").trim()).filter(Boolean))]
+                : [];
+
+            return {
+                date,
+                activities: typeof item.activities === "number" ? Math.max(0, item.activities) : 0,
+                distanceM: typeof item.distanceM === "number" ? Math.max(0, item.distanceM) : 0,
+                movingTimeSec: typeof item.movingTimeSec === "number" ? Math.max(0, item.movingTimeSec) : 0,
+                effortScore: typeof item.effortScore === "number" ? Math.max(0, Math.min(100, Math.round(item.effortScore))) : 0,
+                effortMetric: item.effortMetric === "distance" || item.effortMetric === "time" ? item.effortMetric : "none",
+                effortValue: typeof item.effortValue === "number" ? Math.max(0, item.effortValue) : 0,
+                effortType: typeof item.effortType === "string" && item.effortType.trim().length > 0 ? item.effortType.trim() : null,
+                types,
+            } satisfies RecapActivityDay;
+        })
+        .filter((item): item is RecapActivityDay => item !== null)
+        .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ============ API Slice ============
@@ -204,11 +274,13 @@ export const api = createApi({
                 
                 if (cachedData) {
                     const normalizedBreakdown = normalizeBreakdown(cachedData.breakdown);
+                    const normalizedActivityDays = normalizeActivityDays(cachedData.activityDays, cachedData.activeDays ?? []);
                     return {
                         data: {
                             ...cachedData,
                             breakdown: normalizedBreakdown,
                             availableActivityTypes: normalizeAvailableActivityTypes(cachedData.availableActivityTypes, normalizedBreakdown),
+                            activityDays: normalizedActivityDays,
                         },
                     };
                 }
@@ -232,6 +304,7 @@ export const api = createApi({
                 }
 
                 const normalizedBreakdown = normalizeBreakdown(data.breakdown);
+                const normalizedActivityDays = normalizeActivityDays(data.activityDays, data.activeDays ?? []);
                 const recapData: RecapData = {
                     connected: true,
                     provider: parseProviderType(data.provider),
@@ -240,6 +313,7 @@ export const api = createApi({
                     availableActivityTypes: normalizeAvailableActivityTypes(data.availableActivityTypes, normalizedBreakdown),
                     breakdown: normalizedBreakdown,
                     activeDays: data.activeDays,
+                    activityDays: normalizedActivityDays,
                     highlights: data.highlights,
                 };
 

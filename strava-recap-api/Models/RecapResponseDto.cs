@@ -12,6 +12,7 @@ public sealed class RecapResponseDto
     public List<string> AvailableActivityTypes { get; set; } = new();
     public List<ActivityBreakdownDto> Breakdown { get; set; } = new();
     public HashSet<string> ActiveDays { get; set; } = new();
+    public List<RecapActivityDayDto> ActivityDays { get; set; } = new();
     public RecapHighlightsDto Highlights { get; set; } = null!;
 }
 

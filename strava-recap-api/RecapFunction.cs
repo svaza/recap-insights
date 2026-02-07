@@ -66,6 +66,7 @@ public sealed class RecapFunction
         var total = activities.ToTotal().ToDto();
         var breakdown = activities.ToBreakdown().Select(b => b.ToDto()).ToList();
         var activeDays = activities.ToActiveDays();
+        var activityDays = activities.ToActivityDays();
         var highlights = activities.ToHighlights();
 
         return await req.OkJson(new RecapResponseDto
@@ -81,6 +82,7 @@ public sealed class RecapFunction
             AvailableActivityTypes = availableActivityTypes,
             Breakdown = breakdown,
             ActiveDays = activeDays,
+            ActivityDays = activityDays,
             Highlights = highlights
         });
     }

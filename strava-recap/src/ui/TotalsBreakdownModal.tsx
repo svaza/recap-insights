@@ -74,7 +74,7 @@ export default function TotalsBreakdownModal(props: TotalsBreakdownModalProps) {
                                         >
                                             {item.emoji}
                                         </span>
-                                        <span className="text-truncate">{item.label}</span>
+                                        <span className="recap-totals-breakdown-item__label text-truncate">{item.label}</span>
                                     </div>
                                     <div className="recap-totals-breakdown-item__value">
                                         {item.valueLabel}

@@ -10,6 +10,26 @@ namespace strava_recap_api.Extensions;
 /// </summary>
 public static class RecapExtensions
 {
+    private const double MetersPerMile = 1609.344;
+    private static readonly HashSet<string> TimeBasedEffortTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Crossfit",
+        "HighIntensityIntervalTraining",
+        "Pilates",
+        "StrengthTraining",
+        "WeightTraining",
+        "Workout",
+        "Yoga"
+    };
+
+    private sealed record ScoredActivity(
+        ActivitySummary Activity,
+        string Type,
+        string Metric,
+        double Value,
+        int Score
+    );
+
     /// <summary>
     /// Generates a RecapRequest from HTTP request (auth from cookies, date range from query parameters).
     /// Does not validate - validation is the responsibility of the caller.
@@ -165,6 +185,110 @@ public static class RecapExtensions
         }
         
         return activeDays;
+    }
+
+    /// <summary>
+    /// Computes per-day activity summary used by the activity frequency heatmap.
+    /// </summary>
+    public static List<RecapActivityDayDto> ToActivityDays(this IEnumerable<ActivitySummary> activities)
+    {
+        var activityList = activities.ToList();
+        if (activityList.Count == 0) return new List<RecapActivityDayDto>();
+
+        var scoredActivities = new List<ScoredActivity>(activityList.Count);
+        var groupsByType = activityList
+            .GroupBy(a => NormalizeActivityType(a.SportType ?? a.Type), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var typeGroup in groupsByType)
+        {
+            var type = typeGroup.Key;
+            var metric = ResolveEffortMetric(type, typeGroup);
+            var values = typeGroup
+                .Select(activity => new
+                {
+                    Activity = activity,
+                    Value = metric == "distance"
+                        ? Math.Max(0, activity.Distance / MetersPerMile)
+                        : Math.Max(0, activity.MovingTime / 60.0)
+                })
+                .ToList();
+
+            var minValue = values.Min(v => v.Value);
+            var maxValue = values.Max(v => v.Value);
+            var hasRange = maxValue > minValue;
+
+            foreach (var entry in values)
+            {
+                var score = ComputeEffortScore(entry.Value, minValue, maxValue, hasRange);
+                scoredActivities.Add(new ScoredActivity(entry.Activity, type, metric, entry.Value, score));
+            }
+        }
+
+        return scoredActivities
+            .GroupBy(a => a.Activity.StartDate.UtcDateTime.Date)
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var dayItems = g.ToList();
+                var maxEffort = dayItems
+                    .OrderByDescending(a => a.Score)
+                    .ThenByDescending(a => a.Value)
+                    .First();
+
+                return new RecapActivityDayDto
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    Activities = dayItems.Count,
+                    DistanceM = dayItems.Sum(a => a.Activity.Distance),
+                    MovingTimeSec = dayItems.Sum(a => a.Activity.MovingTime),
+                    EffortScore = maxEffort.Score,
+                    EffortMetric = maxEffort.Metric,
+                    EffortValue = maxEffort.Value,
+                    EffortType = maxEffort.Type,
+                    Types = dayItems
+                        .Select(a => a.Type)
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                        .ToList()
+                };
+            })
+            .ToList();
+    }
+
+    private static string ResolveEffortMetric(string activityType, IEnumerable<ActivitySummary> activities)
+    {
+        if (TimeBasedEffortTypes.Contains(activityType))
+        {
+            return "time";
+        }
+
+        var hasDistance = activities.Any(a => a.Distance > 0);
+        return hasDistance ? "distance" : "time";
+    }
+
+    private static int ComputeEffortScore(double value, double minValue, double maxValue, bool hasRange)
+    {
+        if (value <= 0 || maxValue <= 0)
+        {
+            return 0;
+        }
+
+        if (!hasRange)
+        {
+            return 100;
+        }
+
+        var normalized = (value - minValue) / (maxValue - minValue);
+        var score = (int)Math.Round(normalized * 100, MidpointRounding.AwayFromZero);
+        return Math.Clamp(score, 0, 100);
+    }
+
+    private static string NormalizeActivityType(string? type)
+    {
+        var normalized = (type ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? "Other" : normalized;
     }
 
     /// <summary>

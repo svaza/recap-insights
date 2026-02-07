@@ -571,6 +571,8 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: rgba(8, 10, 12, 0.72);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
@@ -590,7 +592,8 @@
 .recap-modal {
     width: min(580px, 100%);
     max-height: min(80vh, 720px);
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     border: 1px solid var(--ath-border-strong);
     border-radius: 0.6rem;
     background: var(--ath-surface);
@@ -680,16 +683,24 @@
     justify-content: space-between;
     gap: 0.65rem;
     margin-bottom: 0.4rem;
+    min-width: 0;
 }
 
 .recap-totals-breakdown-item__type {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    flex: 1 1 auto;
     min-width: 0;
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--ath-text);
+}
+
+.recap-totals-breakdown-item__label {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .recap-totals-breakdown-item__rank {
@@ -723,13 +734,19 @@
     font-weight: 700;
     letter-spacing: 0.01em;
     color: var(--ath-text);
-    white-space: nowrap;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 48%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: right;
 }
 
 .recap-totals-breakdown-item__bar {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .recap-totals-breakdown-item__track {
@@ -850,6 +867,17 @@
 
     .recap-modal__title {
         font-size: 1rem;
+    }
+
+    .recap-totals-breakdown-item__head {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .recap-totals-breakdown-item__value {
+        flex-basis: 100%;
+        max-width: 100%;
+        text-align: left;
     }
 
     .recap-breakdown-fab {

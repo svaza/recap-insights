@@ -20,6 +20,7 @@ import ConnectProviderPrompt from "../ui/ConnectProviderPrompt";
 import PulseLoader from "../ui/PulseLoader";
 import BreakdownActionButton from "../ui/BreakdownActionButton";
 import TotalsBreakdownModal, { type TotalsBreakdownItem } from "../ui/TotalsBreakdownModal";
+import ActivityHeatmap from "../ui/ActivityHeatmap";
 
 type UnitSystem = "km" | "mi";
 type TrainingInsightTone = "up" | "steady" | "caution";
@@ -335,7 +336,7 @@ export default function RecapPage() {
 
     const query = useMemo(() => parseRecapQuery(searchParams), [searchParams]);
     const { athleteProfile } = useAthleteProfile();
-    const { loading, isFetching, connected, error, providerDisplayName, highlights, total, availableActivityTypes, breakdown, range, activeDays } = useFetchRecap(searchParams.toString());
+    const { loading, isFetching, connected, error, providerDisplayName, highlights, total, availableActivityTypes, breakdown, range, activeDays, activityDays } = useFetchRecap(searchParams.toString());
     const selectedActivityType = useMemo(() => {
         const raw = searchParams.get("activityType");
         if (!raw) return null;
@@ -1601,6 +1602,15 @@ export default function RecapPage() {
                                             />
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="recap-section-divider" />
+                                <div>
+                                    <ActivityHeatmap
+                                        startDate={range?.startUtc?.slice(0, 10)}
+                                        endDate={range?.endUtc?.slice(0, 10)}
+                                        activityDays={activityDays}
+                                    />
                                 </div>
 
                                 {showOverallTrainingInsights && trainingInsights && (
